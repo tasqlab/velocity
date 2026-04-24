@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
+
+@theme {
+  --font-sans: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  
+  --color-whatsapp-dark: #0a0a0a;
+  --color-whatsapp-bg: #111111;
+  --color-whatsapp-surface: #1a1a1a;
+  --color-whatsapp-surfaceHover: #252525;
+  --color-whatsapp-accent: #00a884;
+  --color-whatsapp-accentHover: #008f6b;
+  --color-whatsapp-text: #e9e9e9;
+  --color-whatsapp-textMuted: #888888;
+  --color-whatsapp-border: #2a2a2a;
+  --color-whatsapp-online: #34eb7b;
+  --color-whatsapp-typing: #53deb6;
+  
+  --color-velocity-bg: #0B0E11;
+  --color-velocity-surface: #14171C;
+  --color-velocity-surfaceHover: #1A1E24;
+  --color-velocity-accent: #00D1FF;
+  --color-velocity-accentHover: #00B8E6;
+  --color-velocity-text: #EAEEF1;
+  --color-velocity-textMuted: #8A9199;
+  --color-velocity-border: #262A30;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #0a0a0a;
+  color: #e9e9e9;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3a3a3a;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #4a4a4a;
+}
