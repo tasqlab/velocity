@@ -171,26 +171,102 @@ export default function Status() {
       )}
 
       {/* Bottom Tab Bar */}
-      <div className="h-16 flex items-center justify-around" style={{ background: '#1a1a1a', borderTop: '1px solid #2a2a2a' }}>
-        <Link to="/" className="flex flex-col items-center gap-1" style={{ color: '#888888' }}>
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div className="h-20 flex items-center justify-around" style={{ background: '#1a1a1a', borderTop: '1px solid #2a2a2a' }}>
+        <Link to="/home" className="flex flex-col items-center gap-2 py-2 px-6" style={{ color: '#888888' }}>
+          <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
+          <span className="text-sm font-medium">Home</span>
+        </Link>
+        <Link to="/" className="flex flex-col items-center gap-2 py-2 px-6" style={{ color: '#888888' }}>
+          <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
           </svg>
-          <span className="text-xs">Chats</span>
+          <span className="text-sm font-medium">Chats</span>
         </Link>
-        <button className="flex flex-col items-center gap-1" style={{ color: '#00D1FF' }}>
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <button className="flex flex-col items-center gap-2 py-2 px-6" style={{ color: '#00D1FF' }}>
+          <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <span className="text-xs">Status</span>
+          <span className="text-sm font-medium">Status</span>
         </button>
-        <Link to="/calls" className="flex flex-col items-center gap-1" style={{ color: '#888888' }}>
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <Link to="/calls" className="flex flex-col items-center gap-2 py-2 px-6" style={{ color: '#888888' }}>
+          <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
           </svg>
-          <span className="text-xs">Calls</span>
+          <span className="text-sm font-medium">Calls</span>
         </Link>
       </div>
+
+      {/* Add Status Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.8)' }}>
+          <div className="w-full max-w-md rounded-2xl p-6" style={{ background: '#1a1a1a', border: '1px solid #2a2a2a' }}>
+            <h3 className="text-xl font-bold text-white mb-4">Add Status</h3>
+            
+            {/* Type Selection */}
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={() => setStatusType('text')}
+                className="flex-1 py-2 rounded-lg font-medium transition-all"
+                style={{ background: statusType === 'text' ? '#00D1FF' : '#252525', color: statusType === 'text' ? 'white' : '#888888' }}
+              >
+                Text
+              </button>
+              <button
+                onClick={() => setStatusType('image')}
+                className="flex-1 py-2 rounded-lg font-medium transition-all"
+                style={{ background: statusType === 'image' ? '#00D1FF' : '#252525', color: statusType === 'image' ? 'white' : '#888888' }}
+              >
+                Image
+              </button>
+              <button
+                onClick={() => setStatusType('video')}
+                className="flex-1 py-2 rounded-lg font-medium transition-all"
+                style={{ background: statusType === 'video' ? '#00D1FF' : '#252525', color: statusType === 'video' ? 'white' : '#888888' }}
+              >
+                Video
+              </button>
+            </div>
+
+            {/* Content Input */}
+            {statusType === 'text' ? (
+              <textarea
+                value={statusContent}
+                onChange={(e) => setStatusContent(e.target.value)}
+                placeholder="What's on your mind?"
+                className="w-full h-32 p-4 rounded-xl bg-transparent text-white placeholder-white/40 border border-white/10 focus:outline-none focus:border-[#00D1FF] resize-none"
+              />
+            ) : (
+              <input
+                type="url"
+                value={mediaUrl}
+                onChange={(e) => setMediaUrl(e.target.value)}
+                placeholder={statusType === 'image' ? 'Enter image URL' : 'Enter video URL'}
+                className="w-full p-4 rounded-xl bg-transparent text-white placeholder-white/40 border border-white/10 focus:outline-none focus:border-[#00D1FF]"
+              />
+            )}
+
+            {/* Buttons */}
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="flex-1 py-3 rounded-xl font-medium"
+                style={{ background: '#252525', color: '#888888' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddStatus}
+                className="flex-1 py-3 rounded-xl font-medium"
+                style={{ background: 'linear-gradient(135deg, #00D1FF 0%, #0099CC 100%)', color: 'white' }}
+              >
+                Post
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

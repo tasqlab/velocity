@@ -183,6 +183,12 @@ export default function Chats() {
 
       {/* Bottom Tab Bar */}
       <div className="h-20 flex items-center justify-around" style={{ background: '#1a1a1a', borderTop: '1px solid #2a2a2a' }}>
+        <Link to="/home" className="flex flex-col items-center gap-2 py-2 px-6" style={{ color: '#888888' }}>
+          <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
+          <span className="text-sm font-medium">Home</span>
+        </Link>
         <button
           className="flex flex-col items-center gap-2 py-2 px-6"
           style={{ color: '#00D1FF' }}
