@@ -1,21 +1,68 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
+import { InputModal } from '../components/Modal'
 
 interface StatusUpdate {
   id: string
-  name: string
-  avatar: string
-  time: string
-  views: number
-  image?: string
+  user_id: string
+  content: string | null
+  media_url: string | null
+  media_type: string | null
+  created_at: string
+  profile?: {
+    username: string
+    avatar_url: string
+  }
 }
 
 export default function Status() {
-  const [myStatuses] = useState<StatusUpdate[]>([])
-  const [recentStatuses] = useState<StatusUpdate[]>([
-    { id: '1', name: 'John', avatar: '', time: '2 hours ago', views: 5 },
-    { id: '2', name: 'Sarah', avatar: '', time: '5 hours ago', views: 12 },
-  ])
+  const [statuses, setStatuses] = useState<StatusUpdate[]>([])
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [statusType, setStatusType] = useState<'text' | 'image' | 'video'>('text')
+  const [statusContent, setStatusContent] = useState('')
+  const [mediaUrl, setMediaUrl] = useState('')
+  const { user } = useAuth()
+
+  useEffect(() => {
+    fetchStatuses()
+  }, [])
+
+  const fetchStatuses = async () => {
+    const { data } = await supabase
+      .from('status_updates')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(50)
+    
+    if (data) {
+      const statusesWithProfiles = await Promise.all(data.map(async (s) => {
+        const { data: profile } = await supabase.from('profiles').select('username, avatar_url').eq('id', s.user_id).single()
+        return { ...s, profile }
+      }))
+      setStatuses(statusesWithProfiles)
+    }
+  }
+
+  const handleAddStatus = async () => {
+    if (!user || (!statusContent.trim() && !mediaUrl.trim())) return
+
+    await supabase.from('status_updates').insert({
+      user_id: user.id,
+      content: statusContent.trim(),
+      media_url: mediaUrl.trim() || null,
+      media_type: mediaUrl ? statusType : null
+    })
+
+    setShowAddModal(false)
+    setStatusContent('')
+    setMediaUrl('')
+    fetchStatuses()
+  }
+
+  const myStatuses = user ? statuses.filter(s => s.user_id === user.id) : []
+  const otherStatuses = user ? statuses.filter(s => s.user_id !== user.id) : statuses
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-y-auto" style={{ background: '#0a0a0a' }}>
@@ -26,7 +73,10 @@ export default function Status() {
 
       {/* My Status */}
       <div className="px-4 py-3">
-        <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer">
+        <div 
+          className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer"
+          onClick={() => setShowAddModal(true)}
+        >
           <div className="relative">
             <div className="w-14 h-14 rounded-full overflow-hidden" style={{ background: '#252525', padding: '3px' }}>
               <div className="w-full h-full rounded-full flex items-center justify-center text-white font-semibold text-lg" style={{ background: '#252525' }}>
@@ -46,24 +96,60 @@ export default function Status() {
         </div>
       </div>
 
-      {/* Recent Updates */}
-      {recentStatuses.length > 0 && (
+      {/* My Status List */}
+      {myStatuses.length > 0 && (
         <div className="px-4">
+          <p className="text-sm font-medium py-2" style={{ color: '#888888' }}>My updates</p>
+          {myStatuses.map((status) => (
+            <div key={status.id} className="flex items-center gap-3 p-3 rounded-xl">
+              {status.media_url ? (
+                <div className="w-14 h-14 rounded-xl overflow-hidden" style={{ background: '#252525' }}>
+                  {status.media_type === 'video' ? (
+                    <video src={status.media_url} className="w-full h-full object-cover" />
+                  ) : (
+                    <img src={status.media_url} alt="status" className="w-full h-full object-cover" />
+                  )}
+                </div>
+              ) : (
+                <div className="w-14 h-14 rounded-xl flex items-center justify-center p-3" style={{ background: '#252525' }}>
+                  <p className="text-white text-sm text-center">{status.content}</p>
+                </div>
+              )}
+              <div className="flex-1">
+                <p className="text-white text-sm">{status.content || 'Media status'}</p>
+                <p className="text-xs" style={{ color: '#888888' }}>{new Date(status.created_at).toLocaleString()}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Recent Updates */}
+      {otherStatuses.length > 0 && (
+        <div className="px-4 mt-4">
           <p className="text-sm font-medium py-2" style={{ color: '#888888' }}>Recent updates</p>
           <div className="space-y-1">
-            {recentStatuses.map((status) => (
+            {otherStatuses.map((status) => (
               <div
                 key={status.id}
                 className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer"
               >
                 <div className="w-14 h-14 rounded-full overflow-hidden" style={{ background: '#252525', padding: '2px' }}>
-                  <div className="w-full h-full rounded-full flex items-center justify-center text-white font-semibold" style={{ background: '#00D1FF' }}>
-                    {status.name[0]}
-                  </div>
+                  {status.media_url ? (
+                    status.media_type === 'video' ? (
+                      <video src={status.media_url} className="w-full h-full object-cover rounded-full" />
+                    ) : (
+                      <img src={status.media_url} alt="status" className="w-full h-full object-cover rounded-full" />
+                    )
+                  ) : (
+                    <div className="w-full h-full rounded-full flex items-center justify-center text-white font-semibold" style={{ background: '#00D1FF' }}>
+                      {status.profile?.username?.[0] || '?'}
+                    </div>
+                  )}
                 </div>
                 <div className="flex-1">
-                  <p className="text-white font-medium">{status.name}</p>
-                  <p className="text-sm" style={{ color: '#888888' }}>{status.time}</p>
+                  <p className="text-white font-medium">{status.profile?.username || 'Unknown'}</p>
+                  <p className="text-sm" style={{ color: '#888888' }}>{new Date(status.created_at).toLocaleString()}</p>
                 </div>
               </div>
             ))}
@@ -71,28 +157,8 @@ export default function Status() {
         </div>
       )}
 
-      {/* Viewed */}
-      {recentStatuses.length > 0 && (
-        <div className="px-4 mt-4">
-          <p className="text-sm font-medium py-2" style={{ color: '#888888' }}>Viewed updates</p>
-          <div className="space-y-1">
-            <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer">
-              <div className="w-14 h-14 rounded-full overflow-hidden" style={{ background: '#252525' }}>
-                <div className="w-full h-full rounded-full flex items-center justify-center text-white font-semibold" style={{ background: '#3a3a3a' }}>
-                  M
-                </div>
-              </div>
-              <div className="flex-1">
-                <p className="text-white font-medium">Mike</p>
-                <p className="text-sm" style={{ color: '#888888' }}>Yesterday, 3:45 PM</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Empty State */}
-      {recentStatuses.length === 0 && myStatuses.length === 0 && (
+      {otherStatuses.length === 0 && myStatuses.length === 0 && (
         <div className="flex flex-col items-center justify-center flex-1 text-center px-8">
           <div className="w-24 h-24 rounded-full flex items-center justify-center mb-4" style={{ background: '#252525' }}>
             <svg className="w-12 h-12" style={{ color: '#3a3a3a' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">

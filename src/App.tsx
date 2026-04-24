@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext'
 import Login from './pages/Login'
+import Home from './pages/Home'
 import WhatsAppLayout from './components/WhatsAppLayout'
 import Chats from './pages/Chats'
 import ChatView from './pages/ChatView'
@@ -35,8 +36,11 @@ function App() {
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
       <Route path="/" element={user ? <WhatsAppLayout activeTab={activeTab} setActiveTab={setActiveTab} /> : <Navigate to="/login" />}>
-        <Route index element={<Chats />} />
+        <Route index element={<Home />} />
+        <Route path="home" element={<Home />} />
         <Route path="chat/:chatId" element={<ChatView />} />
+        <Route path="dm/:profileId" element={<ChatView />} />
+        <Route path="group/:groupId" element={<ChatView />} />
         <Route path="status" element={<Status />} />
         <Route path="calls" element={<Calls />} />
       </Route>
