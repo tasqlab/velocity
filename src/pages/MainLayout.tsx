@@ -1,7 +1,50 @@
-import { useState, useEffect, createContext, useContext } from 'react'
-import { Navigate } from 'react-router-dom'
+import { useState, useEffect, createContext, useContext, useRef } from 'react'
+import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+
+// Markdown parser for chat messages
+function parseMarkdown(text: string): string {
+  return text
+    // Headers
+    .replace(/^### (.*$)/gim, '<h3 class="text-lg font-bold mb-2">$1</h3>')
+    .replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold mb-2">$1</h2>')
+    .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold mb-2">$1</h1>')
+    // Bold
+    .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold">$1</strong>')
+    .replace(/__(.*?)__/g, '<strong class="font-bold">$1</strong>')
+    // Italic
+    .replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
+    .replace(/_(.*?)_/g, '<em class="italic">$1</em>')
+    // Strikethrough
+    .replace(/~~(.*?)~~/g, '<del class="line-through opacity-70">$1</del>')
+    // Code
+    .replace(/`([^`]+)`/g, '<code class="px-1.5 py-0.5 bg-black/20 rounded text-sm font-mono">$1</code>')
+    // Code blocks
+    .replace(/```([\s\S]*?)```/g, '<pre class="p-3 bg-black/20 rounded-lg overflow-x-auto text-sm font-mono my-2"><code>$1</code></pre>')
+    // Links
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="underline hover:opacity-80">$1</a>')
+    // Line breaks
+    .replace(/\n/g, '<br />')
+}
+
+// Check if text is a GIF URL
+function isGifUrl(text: string): boolean {
+  const gifRegex = /https?:\/\/.*\.(gif|giphy\.com\/media|tenor\.com\/view)/i
+  return gifRegex.test(text)
+}
+
+// Extract GIF URL from text
+function extractGifUrl(text: string): string | null {
+  const urlRegex = /(https?:\/\/[^\s]+)/g
+  const matches = text.match(urlRegex)
+  if (matches) {
+    for (const match of matches) {
+      if (isGifUrl(match)) return match
+    }
+  }
+  return null
+}
 
 interface Profile { id: string; username: string; avatar_url: string | null; description: string | null; phone: string | null; is_online: boolean }
 interface GroupChat { id: string; name: string; avatar_url: string | null }
@@ -20,7 +63,8 @@ const AppContext = createContext<AppContextType | null>(null)
 export const useApp = () => useContext(AppContext)!
 
 function Sidebar({ activeTab, onTabChange }: { activeTab: Tab; onTabChange: (t: Tab) => void }) {
-  const { darkMode, setDarkMode, user, signOut } = useApp()
+  const { darkMode, setDarkMode, signOut } = useApp()
+  const navigate = useNavigate()
   const tabs: { id: Tab; icon: string }[] = [
     { id: 'home', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
     { id: 'chat', icon: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z' },
@@ -30,6 +74,11 @@ function Sidebar({ activeTab, onTabChange }: { activeTab: Tab; onTabChange: (t: 
   ]
   const labels = { home: 'Home', chat: 'Chat', status: 'Status', calls: 'Calls', settings: 'Settings' }
 
+  const handleTabChange = (tabId: Tab) => {
+    onTabChange(tabId)
+    navigate(`/app/${tabId}`)
+  }
+
   return (
     <div className="w-20 h-full flex flex-col items-center py-4" style={{ background: darkMode ? '#1a1a1a' : '#f0f2f5', borderRight: `1px solid ${darkMode ? '#2d2d2d' : '#e1e4e8'}` }}>
       <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-2xl mb-6 transition-transform duration-300 hover:scale-110 hover:rotate-3" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', boxShadow: '0 4px 15px rgba(102,126,234,0.4)' }}>
@@ -37,7 +86,7 @@ function Sidebar({ activeTab, onTabChange }: { activeTab: Tab; onTabChange: (t: 
       </div>
       <div className="flex flex-col gap-3 flex-1">
         {tabs.map(tab => (
-          <button key={tab.id} onClick={() => onTabChange(tab.id)} className="w-14 h-14 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all duration-300 hover:scale-105 hover:bg-opacity-50" style={{ background: activeTab === tab.id ? (darkMode ? '#2d2d2d' : '#e8eaed') : 'transparent', color: activeTab === tab.id ? '#667eea' : (darkMode ? '#888888' : '#666666') }}>
+          <button key={tab.id} onClick={() => handleTabChange(tab.id)} className="w-14 h-14 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all duration-300 hover:scale-105 hover:bg-opacity-50" style={{ background: activeTab === tab.id ? (darkMode ? '#2d2d2d' : '#e8eaed') : 'transparent', color: activeTab === tab.id ? '#667eea' : (darkMode ? '#888888' : '#666666') }}>
             <svg className="w-6 h-6 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d={tab.icon} /></svg>
             <span className="text-[10px] font-medium">{labels[tab.id]}</span>
           </button>
@@ -280,6 +329,10 @@ function ChatArea({ type, id }: { type: 'dm' | 'group'; id: string }) {
   const [showInvite, setShowInvite] = useState(false)
   const [inviteSearch, setInviteSearch] = useState('')
   const [searchResults, setSearchResults] = useState<Profile[]>([])
+  const [showProfileInfo, setShowProfileInfo] = useState(false)
+  const [showGroupInfo, setShowGroupInfo] = useState(false)
+  const [groupMembers, setGroupMembers] = useState<Profile[]>([])
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (type === 'dm') {
@@ -288,8 +341,17 @@ function ChatArea({ type, id }: { type: 'dm' | 'group'; id: string }) {
     } else {
       supabase.from('group_chats').select('*').eq('id', id).single().then(({ data }) => setGroup(data as GroupChat))
       supabase.from('group_messages').select('*').eq('group_id', id).order('created_at').then(({ data }) => setMessages(data || []))
+      // Fetch group members
+      supabase.from('group_members').select('user_id, profiles(*)').eq('group_id', id).then(({ data }) => {
+        if (data) setGroupMembers(data.map(m => (m.profiles as unknown) as Profile).filter(Boolean))
+      })
     }
   }, [type, id, user])
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
 
   const sendMessage = async () => {
     if (!input.trim() || !user) return
@@ -321,53 +383,132 @@ function ChatArea({ type, id }: { type: 'dm' | 'group'; id: string }) {
   const title = type === 'dm' ? profile?.username : group?.name
   const avatar = type === 'dm' ? profile?.avatar_url : group?.avatar_url
 
-  return (
-    <div className="flex-1 flex flex-col h-full" style={{ background: 'var(--bg-primary)' }}>
-      <div className="h-16 px-4 flex items-center gap-3" style={{ borderBottom: '1px solid var(--border)' }}>
-        <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center" style={{ background: type === 'group' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'var(--bg-secondary)' }}>
-          {avatar ? <img src={avatar} alt="" className="w-full h-full object-cover" /> : <span className="font-semibold text-white">{title?.[0]?.toUpperCase()}</span>}
-        </div>
-        <div className="flex-1">
-          <h2 className="font-semibold" style={{ color: 'var(--text-primary)' }}>{title}</h2>
-          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{type === 'dm' ? (profile?.is_online ? 'Online' : 'Offline') : 'Group'}</p>
-        </div>
-        {type === 'group' && (
-          <button onClick={() => setShowInvite(true)} className="p-2 rounded-full hover:bg-black/5" style={{ color: 'var(--text-secondary)' }}>
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
-          </button>
+  // Message component with markdown and GIF support
+  const MessageContent = ({ content }: { content: string }) => {
+    const gifUrl = extractGifUrl(content)
+    const textContent = content.replace(gifUrl || '', '').trim()
+    
+    return (
+      <div className="space-y-2">
+        {gifUrl && (
+          <div className="rounded-xl overflow-hidden max-w-xs">
+            <img src={gifUrl} alt="GIF" className="w-full h-auto" loading="lazy" />
+          </div>
+        )}
+        {textContent && (
+          <div 
+            className="leading-relaxed text-base prose prose-invert max-w-none"
+            dangerouslySetInnerHTML={{ __html: parseMarkdown(textContent) }}
+          />
         )}
       </div>
+    )
+  }
 
-      <div className="flex-1 overflow-y-auto p-8 space-y-6">
-        {messages.map(msg => {
+  return (
+    <div className="flex-1 flex flex-col h-full" style={{ background: 'var(--bg-primary)' }}>
+      {/* Header */}
+      <div className="h-16 px-6 flex items-center gap-4" style={{ borderBottom: '1px solid var(--border)' }}>
+        <button 
+          onClick={() => type === 'dm' ? setShowProfileInfo(true) : setShowGroupInfo(true)}
+          className="flex items-center gap-3 flex-1 hover:opacity-80 transition-opacity"
+        >
+          <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center" style={{ background: type === 'group' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'var(--bg-secondary)' }}>
+            {avatar ? <img src={avatar} alt="" className="w-full h-full object-cover" /> : <span className="font-semibold text-white">{title?.[0]?.toUpperCase()}</span>}
+          </div>
+          <div className="flex-1">
+            <h2 className="font-semibold" style={{ color: 'var(--text-primary)' }}>{title}</h2>
+            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+              {type === 'dm' ? (profile?.is_online ? 'Online' : 'Offline') : `${groupMembers.length} members`}
+            </p>
+          </div>
+        </button>
+        
+        {/* Action buttons */}
+        <div className="flex items-center gap-2">
+          {type === 'dm' && (
+            <button className="p-2.5 rounded-full hover:bg-black/5 transition-colors" style={{ color: 'var(--text-secondary)' }} title="Voice call">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+            </button>
+          )}
+          {type === 'dm' && (
+            <button className="p-2.5 rounded-full hover:bg-black/5 transition-colors" style={{ color: 'var(--text-secondary)' }} title="Video call">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+            </button>
+          )}
+          {type === 'group' && (
+            <button onClick={() => setShowInvite(true)} className="p-2.5 rounded-full hover:bg-black/5 transition-colors" style={{ color: 'var(--text-secondary)' }} title="Add member">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
+            </button>
+          )}
+          <button 
+            onClick={() => type === 'dm' ? setShowProfileInfo(true) : setShowGroupInfo(true)}
+            className="p-2.5 rounded-full hover:bg-black/5 transition-colors"
+            style={{ color: 'var(--text-secondary)' }}
+            title="Info"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        {messages.map((msg, index) => {
           const isMe = msg.sender_id === user?.id
           const sender = profiles.find(p => p.id === msg.sender_id)
+          const showAvatar = !isMe && (index === 0 || messages[index - 1].sender_id !== msg.sender_id)
+          const time = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          
           return (
-            <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} items-end gap-2 group`}>
-              {!isMe && (
+            <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} items-end gap-3 group`}>
+              {!isMe && showAvatar ? (
                 <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center" style={{ background: 'var(--bg-tertiary)' }}>
                   {sender?.avatar_url ? <img src={sender.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{sender?.username?.[0]?.toUpperCase() || '?'}</span>}
                 </div>
-              )}
-              <div className="max-w-[65%] flex flex-col gap-1">
-                {!isMe && sender && <span className="text-xs font-medium px-1" style={{ color: 'var(--text-secondary)' }}>{sender.username}</span>}
-                <div className="px-5 py-4 rounded-2xl transition-all duration-200 hover:scale-[1.01]" style={{ background: isMe ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'var(--bg-secondary)', color: isMe ? 'white' : 'var(--text-primary)', boxShadow: isMe ? '0 4px 15px rgba(102,126,234,0.3)' : 'none' }}>
-                  <p className="leading-relaxed text-base">{msg.content}</p>
+              ) : !isMe ? <div className="w-8 flex-shrink-0" /> : null}
+              
+              <div className={`max-w-[70%] flex flex-col gap-1 ${isMe ? 'items-end' : 'items-start'}`}>
+                {!isMe && showAvatar && sender && <span className="text-xs font-medium px-1" style={{ color: 'var(--text-secondary)' }}>{sender.username}</span>}
+                <div className={`px-4 py-3 rounded-2xl transition-all duration-200 hover:scale-[1.01] ${isMe ? 'rounded-br-md' : 'rounded-bl-md'}`} style={{ background: isMe ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'var(--bg-secondary)', color: isMe ? 'white' : 'var(--text-primary)', boxShadow: isMe ? '0 4px 15px rgba(102,126,234,0.3)' : '0 2px 8px rgba(0,0,0,0.05)' }}>
+                  <MessageContent content={msg.content} />
                 </div>
+                <span className="text-[10px] opacity-50 px-1">{time}</span>
               </div>
-              {isMe && <div className="w-8 h-8 flex-shrink-0" />}
             </div>
           )
         })}
+        <div ref={messagesEndRef} />
       </div>
 
+      {/* Input area */}
       <div className="p-4" style={{ borderTop: '1px solid var(--border)' }}>
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-full" style={{ background: 'var(--bg-secondary)' }}>
-          <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendMessage()} placeholder="Message..." className="flex-1 bg-transparent outline-none text-sm" style={{ color: 'var(--text-primary)' }} />
-          <button onClick={sendMessage} className="p-2 rounded-full" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+        <div className="flex items-center gap-3 px-5 py-3 rounded-full" style={{ background: 'var(--bg-secondary)' }}>
+          <button className="p-2 rounded-full hover:bg-black/10 transition-colors" style={{ color: 'var(--text-muted)' }} title="Add attachment">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+          </button>
+          <button className="p-2 rounded-full hover:bg-black/10 transition-colors" style={{ color: 'var(--text-muted)' }} title="GIF">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+          </button>
+          <input 
+            type="text" 
+            value={input} 
+            onChange={(e) => setInput(e.target.value)} 
+            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()} 
+            placeholder="Type a message... (Markdown supported: **bold**, *italic*, # header)" 
+            className="flex-1 bg-transparent outline-none text-sm py-1"
+            style={{ color: 'var(--text-primary)' }}
+          />
+          <button 
+            onClick={sendMessage} 
+            disabled={!input.trim()}
+            className="p-2.5 rounded-full transition-all disabled:opacity-50 hover:scale-105"
+            style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}
+          >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
           </button>
         </div>
+        <p className="text-[10px] text-center mt-2 opacity-40">Press Enter to send, Shift+Enter for new line</p>
       </div>
 
       {showInvite && (
@@ -386,6 +527,58 @@ function ChatArea({ type, id }: { type: 'dm' | 'group'; id: string }) {
               ))}
             </div>
             <button onClick={() => setShowInvite(false)} className="w-full mt-4 py-2.5 rounded-xl text-sm font-medium" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>Close</button>
+          </div>
+        </div>
+      )}
+
+      {/* Profile Info Modal */}
+      {showProfileInfo && profile && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
+          <div className="w-full max-w-sm rounded-3xl p-6" style={{ background: 'var(--bg-primary)' }}>
+            <div className="text-center mb-6">
+              <div className="w-24 h-24 rounded-full mx-auto mb-4 overflow-hidden flex items-center justify-center" style={{ background: 'var(--bg-secondary)' }}>
+                {profile.avatar_url ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>{profile.username[0].toUpperCase()}</span>}
+              </div>
+              <h3 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{profile.username}</h3>
+              <p className="text-sm mt-1" style={{ color: profile.is_online ? '#10b981' : 'var(--text-secondary)' }}>{profile.is_online ? 'Online' : 'Offline'}</p>
+            </div>
+            {profile.description && <p className="text-center mb-4" style={{ color: 'var(--text-secondary)' }}>{profile.description}</p>}
+            {profile.phone && <p className="text-center text-sm mb-4" style={{ color: 'var(--text-muted)' }}>Phone: {profile.phone}</p>}
+            <div className="flex gap-3">
+              <button className="flex-1 py-3 rounded-xl font-medium text-white" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>Message</button>
+              <button onClick={() => setShowProfileInfo(false)} className="flex-1 py-3 rounded-xl font-medium" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Group Info Modal */}
+      {showGroupInfo && group && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
+          <div className="w-full max-w-sm rounded-3xl p-6" style={{ background: 'var(--bg-primary)' }}>
+            <div className="text-center mb-6">
+              <div className="w-24 h-24 rounded-full mx-auto mb-4 overflow-hidden flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+                {group.avatar_url ? <img src={group.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-4xl font-bold text-white">{group.name[0].toUpperCase()}</span>}
+              </div>
+              <h3 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{group.name}</h3>
+              <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>{groupMembers.length} members</p>
+            </div>
+            <div className="max-h-48 overflow-y-auto space-y-2 mb-4">
+              <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>MEMBERS</p>
+              {groupMembers.map(m => (
+                <div key={m.id} className="flex items-center gap-3 p-2 rounded-xl" style={{ background: 'var(--bg-secondary)' }}>
+                  <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
+                    {m.avatar_url ? <img src={m.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{m.username[0].toUpperCase()}</span>}
+                  </div>
+                  <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{m.username}</span>
+                  {m.is_online && <span className="ml-auto w-2 h-2 rounded-full bg-green-500" />}
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => { setShowGroupInfo(false); setShowInvite(true); }} className="flex-1 py-3 rounded-xl font-medium text-white" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>Add Member</button>
+              <button onClick={() => setShowGroupInfo(false)} className="flex-1 py-3 rounded-xl font-medium" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>Close</button>
+            </div>
           </div>
         </div>
       )}
@@ -550,6 +743,8 @@ function SettingsPage() {
 
 export default function MainLayout() {
   const { user, loading, signOut } = useAuth()
+  const location = useLocation()
+  const navigate = useNavigate()
   const [darkMode, setDarkMode] = useState(true)
   const [activeTab, setActiveTab] = useState<Tab>('home')
   const [profiles, setProfiles] = useState<Profile[]>([])
@@ -559,6 +754,17 @@ export default function MainLayout() {
   const [statuses, setStatuses] = useState<StatusUpdate[]>([])
   const [selectedChat, setSelectedChat] = useState<{ type: 'dm' | 'group'; id: string } | null>(null)
 
+  // Sync active tab with URL
+  useEffect(() => {
+    const path = location.pathname
+    const tabFromPath = path.split('/')[2] as Tab
+    if (['home', 'chat', 'status', 'calls', 'settings'].includes(tabFromPath)) {
+      setActiveTab(tabFromPath)
+    } else if (path === '/app' || path === '/app/') {
+      setActiveTab('home')
+    }
+  }, [location.pathname])
+
   useEffect(() => { document.documentElement.classList.toggle('dark', darkMode) }, [darkMode])
 
   const refresh = async () => {
@@ -566,26 +772,34 @@ export default function MainLayout() {
     const { data: profilesData } = await supabase.from('profiles').select('*')
     if (profilesData) setProfiles(profilesData.filter(p => p.id !== user.id))
     const { data: friendsData } = await supabase.from('friends').select('friend_id, profiles(*)').eq('user_id', user.id).eq('status', 'accepted')
-    if (friendsData) setFriends(friendsData.map(f => f.profiles as Profile))
+    if (friendsData) setFriends(friendsData.map(f => (f.profiles as unknown) as Profile))
     const { data: dmData } = await supabase.from('direct_messages').select('*').or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`).order('created_at', { ascending: false })
     if (dmData) setDms(dmData)
     const { data: groupData } = await supabase.from('group_members').select('group_id, group_chats(*)').eq('user_id', user.id)
-    if (groupData) setGroups(groupData.map(g => g.group_chats as GroupChat))
+    if (groupData) setGroups(groupData.map(g => (g.group_chats as unknown) as GroupChat))
     const { data: statusData } = await supabase.from('status_updates').select('*').order('created_at', { ascending: false }).limit(50)
     if (statusData) setStatuses(statusData)
   }
 
   useEffect(() => { if (user) refresh() }, [user])
 
+  // Update URL when tab changes (but not on initial load to avoid double navigation)
+  const handleTabChange = (tab: Tab) => {
+    setActiveTab(tab)
+    if (location.pathname !== `/app/${tab}`) {
+      navigate(`/app/${tab}`)
+    }
+  }
+
   if (loading) return <div className="h-screen w-screen flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}><div className="w-10 h-10 rounded-full animate-spin" style={{ border: '3px solid var(--border)', borderTopColor: '#667eea' }} /></div>
   if (!user) return <Navigate to="/login" />
 
   return (
-    <AppContext.Provider value={{ darkMode, setDarkMode, activeTab, setActiveTab, profiles, groups, friends, dms, statuses, user, signOut, refresh }}>
+    <AppContext.Provider value={{ darkMode, setDarkMode, activeTab, setActiveTab: handleTabChange, profiles, groups, friends, dms, statuses, user, signOut, refresh }}>
       <div className="h-screen w-screen flex overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
-        <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
+        <Sidebar activeTab={activeTab} onTabChange={handleTabChange} />
         {activeTab === 'home' && <HomePage />}
-        {activeTab === 'chat' && (<><ChatList onSelectChat={(type, id) => setSelectedChat({ type, id })} />{selectedChat ? <ChatArea type={selectedChat.type} id={selectedChat.id} /> : <div className="flex-1 flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}><div className="text-center"><div className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ background: 'var(--bg-secondary)' }}><svg className="w-10 h-10" style={{ color: 'var(--text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg></div><p className="font-medium" style={{ color: 'var(--text-primary)' }}>Select a chat</p><p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Choose from your existing conversations</p></div></div>}</>)}
+        {activeTab === 'chat' && (<><ChatList onSelectChat={(type, id) => setSelectedChat({ type, id })} />{selectedChat ? <ChatArea type={selectedChat.type} id={selectedChat.id} /> : <div className="flex-1 flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}><div className="text-center p-8"><div className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ background: 'var(--bg-secondary)' }}><svg className="w-10 h-10" style={{ color: 'var(--text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg></div><p className="font-medium" style={{ color: 'var(--text-primary)' }}>Select a chat</p><p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Choose from your existing conversations</p></div></div>}</>)}
         {activeTab === 'status' && <StatusPage />}
         {activeTab === 'calls' && <CallsPage />}
         {activeTab === 'settings' && <SettingsPage />}
