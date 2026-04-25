@@ -1,4 +1,5 @@
 # Velocity Chat
+# [![Website](https://img.shields.io/badge/website-blue)](https://tasqlab.github.io/velocity)  
 A web-based chat app  
 created using
  - supabase
