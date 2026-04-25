@@ -17,9 +17,8 @@ jobs:
 
       - name: Install and Build
         run: |
-          npm install
-          chmod +x node_modules/.bin/vite
-          npm run build
+          npm ci
+          npm exec vite build
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
