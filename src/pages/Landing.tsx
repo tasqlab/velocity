@@ -21,13 +21,13 @@ export default function Landing() {
 
         <div className="flex flex-wrap gap-4 justify-center">
           <Link to="/login">
-            <button className="px-6 py-3 text-base bg-white text-black hover:bg-slate-200 shadow-[0_18px_60px_rgba(0,0,0,0.9)] rounded-full font-medium transition-all hover:scale-105">
+            <button className="px-6 py-3 text-base bg-white text-black hover:bg-slate-200 shadow-[0_18px_60px_rgba(0,0,0,0.9)] rounded-2xl font-medium transition-all hover:scale-105">
               Log In
             </button>
           </Link>
 
           <Link to="/signup">
-            <button className="px-6 py-3 text-base bg-white/10 hover:bg-white/20 border border-white/25 backdrop-blur-xl shadow-[0_18px_60px_rgba(0,0,0,0.9)] rounded-full font-medium transition-all hover:scale-105">
+            <button className="px-6 py-3 text-base bg-white/10 hover:bg-white/20 border border-white/25 backdrop-blur-xl shadow-[0_18px_60px_rgba(0,0,0,0.9)] rounded-2xl font-medium transition-all hover:scale-105">
               Sign Up
             </button>
           </Link>

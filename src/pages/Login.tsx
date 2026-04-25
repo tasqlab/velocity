@@ -60,7 +60,7 @@ export default function Login() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm outline-none focus:border-white/40"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-2xl text-white text-sm outline-none focus:border-white/40"
               required
             />
           </div>
@@ -71,21 +71,21 @@ export default function Login() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm outline-none focus:border-white/40"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-2xl text-white text-sm outline-none focus:border-white/40"
               required
             />
           </div>
 
           {error && <p className="text-xs text-red-400">{error}</p>}
 
-          <button type="submit" className="w-full mt-1 py-2 bg-white text-black rounded-lg font-medium hover:bg-slate-200 transition-colors disabled:opacity-50">
+          <button type="submit" className="w-full mt-1 py-2 bg-white text-black rounded-2xl font-medium hover:bg-slate-200 transition-colors disabled:opacity-50">
             {loading ? 'Logging in…' : 'Log In'}
           </button>
         </form>
 
         <button
           onClick={loginWithGoogle}
-          className="w-full mt-3 py-2 bg-white text-black rounded-lg font-medium hover:bg-slate-200 transition-colors"
+          className="w-full mt-3 py-2 bg-white text-black rounded-2xl font-medium hover:bg-slate-200 transition-colors"
         >
           Continue with Google
         </button>

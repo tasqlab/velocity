@@ -64,8 +64,10 @@ div, section, form, h1, h2, h3, p {
   margin-right: auto;
 }
 
-button, input {
-  margin: 10px;
+button, 
+input, 
+div:not(#root):not([class="absolute inset-0 bg-gradient-to-br from-purple-900/40 via-slate-900 to-blue-900/40"]) {
+  padding: 5px;
 }
 
 /* Animations */
