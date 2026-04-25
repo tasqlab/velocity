@@ -355,12 +355,34 @@ function ChatArea({ type, id }: { type: 'dm' | 'group'; id: string }) {
 
   const sendMessage = async () => {
     if (!input.trim() || !user) return
+    const content = input.trim()
+    const tempId = `temp-${Date.now()}`
+    const now = new Date().toISOString()
+    
+    // Optimistically add message to UI immediately
+    const optimisticMessage = {
+      id: tempId,
+      sender_id: user.id,
+      content,
+      created_at: now,
+      ...(type === 'dm' ? { receiver_id: id } : { group_id: id })
+    } as DirectMessage | GroupMessage
+    
+    setMessages(prev => [...prev, optimisticMessage])
+    setInput('')
+    
+    // Send to database
     if (type === 'dm') {
-      await supabase.from('direct_messages').insert({ sender_id: user.id, receiver_id: id, content: input })
-      setInput('')
+      const { data } = await supabase.from('direct_messages').insert({ sender_id: user.id, receiver_id: id, content }).select()
+      if (data && data[0]) {
+        // Replace temp message with real one from DB
+        setMessages(prev => prev.map(m => m.id === tempId ? data[0] as DirectMessage : m))
+      }
     } else {
-      await supabase.from('group_messages').insert({ group_id: id, sender_id: user.id, content: input })
-      setInput('')
+      const { data } = await supabase.from('group_messages').insert({ group_id: id, sender_id: user.id, content }).select()
+      if (data && data[0]) {
+        setMessages(prev => prev.map(m => m.id === tempId ? data[0] as GroupMessage : m))
+      }
     }
   }
 
