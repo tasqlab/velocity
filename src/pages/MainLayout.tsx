@@ -470,7 +470,7 @@ function ChatArea({ type, id }: { type: 'dm' | 'group'; id: string }) {
               
               <div className={`max-w-[70%] flex flex-col gap-1 ${isMe ? 'items-end' : 'items-start'}`}>
                 {!isMe && showAvatar && sender && <span className="text-xs font-medium px-1" style={{ color: 'var(--text-secondary)' }}>{sender.username}</span>}
-                <div className={`px-4 py-3 rounded-2xl transition-all duration-200 hover:scale-[1.01] ${isMe ? 'rounded-br-md' : 'rounded-bl-md'}`} style={{ background: isMe ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'var(--bg-secondary)', color: isMe ? 'white' : 'var(--text-primary)', boxShadow: isMe ? '0 4px 15px rgba(102,126,234,0.3)' : '0 2px 8px rgba(0,0,0,0.05)' }}>
+                <div className={`px-5 py-4 rounded-2xl transition-all duration-200 hover:scale-[1.01] ${isMe ? 'rounded-br-md' : 'rounded-bl-md'}`} style={{ background: isMe ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'var(--bg-secondary)', color: isMe ? 'white' : 'var(--text-primary)', boxShadow: isMe ? '0 4px 15px rgba(102,126,234,0.3)' : '0 2px 8px rgba(0,0,0,0.05)' }}>
                   <MessageContent content={msg.content} />
                 </div>
                 <span className="text-[10px] opacity-50 px-1">{time}</span>
@@ -483,11 +483,11 @@ function ChatArea({ type, id }: { type: 'dm' | 'group'; id: string }) {
 
       {/* Input area */}
       <div className="p-4" style={{ borderTop: '1px solid var(--border)' }}>
-        <div className="flex items-center gap-3 px-5 py-3 rounded-full" style={{ background: 'var(--bg-secondary)' }}>
-          <button className="p-2 rounded-full hover:bg-black/10 transition-colors" style={{ color: 'var(--text-muted)' }} title="Add attachment">
+        <div className="flex items-center gap-4 px-6 py-4 rounded-full" style={{ background: 'var(--bg-secondary)' }}>
+          <button className="p-3 rounded-full hover:bg-black/10 transition-colors" style={{ color: 'var(--text-muted)' }} title="Add attachment">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
           </button>
-          <button className="p-2 rounded-full hover:bg-black/10 transition-colors" style={{ color: 'var(--text-muted)' }} title="GIF">
+          <button className="p-3 rounded-full hover:bg-black/10 transition-colors" style={{ color: 'var(--text-muted)' }} title="GIF">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
           </button>
           <input 
@@ -496,13 +496,13 @@ function ChatArea({ type, id }: { type: 'dm' | 'group'; id: string }) {
             onChange={(e) => setInput(e.target.value)} 
             onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()} 
             placeholder="Type a message... (Markdown supported: **bold**, *italic*, # header)" 
-            className="flex-1 bg-transparent outline-none text-sm py-1"
+            className="flex-1 bg-transparent outline-none text-base py-1"
             style={{ color: 'var(--text-primary)' }}
           />
           <button 
             onClick={sendMessage} 
             disabled={!input.trim()}
-            className="p-2.5 rounded-full transition-all disabled:opacity-50 hover:scale-105"
+            className="p-3 rounded-full transition-all disabled:opacity-50 hover:scale-105"
             style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
