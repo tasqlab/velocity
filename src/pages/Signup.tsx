@@ -1,4 +1,4 @@
-import { FormEvent, useState } from 'react'
+import { FormEvent, useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { Link, useNavigate } from 'react-router-dom'
 
@@ -9,55 +9,43 @@ export default function Signup() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [showPopup, setShowPopup] = useState(false)
-
+  const [showPassword, setShowPassword] = useState(false)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (error) setError(null)
+  }, [email, password, name])
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError(null)
     setLoading(true)
 
-    const { error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: name,
-          avatar_url: null
-        },
-        emailRedirectTo: `${window.location.origin}/#/login` 
+    try {
+      const { error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: name,
+            avatar_url: null
+          },
+          emailRedirectTo: `${window.location.origin}/#/login` 
+        }
+      })
+
+      setLoading(false)
+
+      if (authError) {
+        setError(authError.message)
+        return
       }
-    })
 
-    setLoading(false)
-
-    if (authError) {
-      setError(authError.message)
-      return
+      setShowPopup(true)
+    } catch {
+      setError('An unexpected error occurred.')
+      setLoading(false)
     }
-
-    setShowPopup(true)
-  }
-
-  const signUpWithMagicLink = async () => {
-    setError(null)
-    setLoading(true)
-
-    const { error: authError } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/#/login` 
-      }
-    })
-
-    setLoading(false)
-
-    if (authError) {
-      setError(authError.message)
-      return
-    }
-
-    setShowPopup(true)
   }
 
   const signUpWithGoogle = async () => {
@@ -70,115 +58,214 @@ export default function Signup() {
   }
 
   return (
-    <div className="h-screen w-screen flex items-center justify-center bg-[#02030a] relative overflow-hidden">
-      {/* animated background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-900/40 via-slate-900 to-blue-900/40" />
-      <div className="absolute -top-40 -right-40 w-[420px] h-[420px] rounded-full bg-purple-500/25 blur-3xl animate-slow-orbit" />
-      <div className="absolute -bottom-40 -left-40 w-[520px] h-[520px] rounded-full bg-blue-500/25 blur-3xl animate-slow-orbit" />
+    <div className="min-h-screen w-full flex items-center justify-center bg-[#0a0a0f] relative overflow-hidden p-4">
+      {/* Background effects matching Landing */}
+      <div className="absolute inset-0 bg-gradient-to-br from-violet-950/20 via-[#0a0a0f] to-blue-950/20" />
+      <div className="absolute top-20 left-[10%] w-64 h-64 rounded-full bg-violet-600/10 blur-3xl animate-float-slow" />
+      <div className="absolute bottom-20 right-[10%] w-80 h-80 rounded-full bg-blue-600/10 blur-3xl animate-float-slow" />
 
-      {/* signup card */}
-      <div className="relative z-10 w-full max-w-sm rounded-2xl bg-black/65 border border-white/10 shadow-[0_24px_80px_rgba(0,0,0,0.9)] backdrop-blur-2xl p-6 mx-4 animate-float-soft">
-        <h2 className="text-lg font-semibold mb-1">Create an account</h2>
-        <p className="text-xs text-slate-400 mb-4">
-          Pick a name, drop an email, and you're in.
-        </p>
+      {/* Back to home link */}
+      <Link 
+        to="/" 
+        className="absolute top-6 left-6 flex items-center gap-2 text-slate-400 hover:text-white transition-colors z-20"
+      >
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        </svg>
+        <span className="text-sm">Back</span>
+      </Link>
 
-        <form onSubmit={onSubmit} className="space-y-3">
-          <div className="space-y-1">
-            <label className="text-xs text-slate-300">Name</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-2xl text-white text-sm outline-none focus:border-white/40"
-              required
-            />
+      {/* Card */}
+      <div className="relative z-10 w-full max-w-md animate-fade-in-up">
+        {/* Logo */}
+        <div className="flex justify-center mb-8">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-blue-600 flex items-center justify-center shadow-2xl shadow-violet-500/25">
+            <span className="text-3xl font-bold">V</span>
+          </div>
+        </div>
+
+        <div className="bg-white/5 border border-white/10 rounded-3xl p-8 backdrop-blur-xl shadow-2xl">
+          <h1 className="text-2xl font-bold text-center mb-2">Create an account</h1>
+          <p className="text-slate-400 text-center mb-6 text-sm">
+            Join the users of Velocity
+          </p>
+
+          <form onSubmit={onSubmit} className="space-y-4">
+            {/* Name field */}
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Full Name</label>
+              <div className="relative">
+                <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="John Doe"
+                  className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-slate-500 outline-none focus:border-violet-500/50 transition-colors"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Email field */}
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Email</label>
+              <div className="relative">
+                <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                </svg>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-slate-500 outline-none focus:border-violet-500/50 transition-colors"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Password field */}
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Password</label>
+              <div className="relative">
+                <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full pl-12 pr-12 py-3 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-slate-500 outline-none focus:border-violet-500/50 transition-colors"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                >
+                  {showPassword ? (
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Error message */}
+            {error && (
+              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm animate-shake">
+                {error}
+              </div>
+            )}
+
+            {/* Submit button */}
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="w-full py-3.5 bg-gradient-to-r from-violet-600 to-blue-600 text-white rounded-2xl font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-violet-500/25 hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
+            >
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Creating account...
+                </span>
+              ) : 'Create Account'}
+            </button>
+          </form>
+
+          {/* Divider */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-white/10" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-4 bg-[#13131f] text-slate-500 rounded-full">Or continue with</span>
+            </div>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-xs text-slate-300">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-2xl text-white text-sm outline-none focus:border-white/40"
-              required
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs text-slate-300">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-2xl text-white text-sm outline-none focus:border-white/40"
-              required
-            />
-          </div>
-
-          {error && <p className="text-xs text-red-400">{error}</p>}
-
-          <button type="submit" className="w-full mt-1 py-2 bg-white text-black rounded-2xl font-medium hover:bg-slate-200 transition-colors disabled:opacity-50">
-            {loading ? 'Creating…' : 'Sign Up'}
+          {/* Google button */}
+          <button
+            onClick={signUpWithGoogle}
+            className="w-full py-3 bg-white text-black rounded-2xl font-semibold transition-all duration-300 hover:shadow-lg hover:scale-[1.02] flex items-center justify-center gap-3"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+              <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+              <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+              <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+            </svg>
+            Google
           </button>
-        </form>
 
-        {/* magic link */}
-        <button
-          onClick={signUpWithMagicLink}
-          className="w-full mt-3 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-2xl font-medium transition-colors disabled:opacity-50"
-          disabled={loading}
-        >
-          Send Magic Link
-        </button>
-
-        {/* google oauth */}
-        <button
-          onClick={signUpWithGoogle}
-          className="w-full mt-3 py-2 bg-white text-black rounded-2xl font-medium hover:bg-slate-200 transition-colors"
-        >
-          Continue with Google
-        </button>
-
-        <div className="mt-3 text-[11px] text-slate-400 flex justify-between">
-          <span>Already have an account?</span>
-          <Link to="/login" className="hover:text-slate-200">
-            Log in
-          </Link>
+          {/* Sign in link */}
+          <p className="mt-6 text-center text-sm text-slate-400">
+            Already have an account?{' '}
+            <Link to="/login" className="text-violet-400 hover:text-violet-300 font-medium transition-colors">
+              Sign in
+            </Link>
+          </p>
         </div>
       </div>
 
-      {/* POPUP */}
+      {/* Success Popup */}
       {showPopup && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-xl z-20">
-          <div className="bg-black/80 border border-white/20 rounded-xl p-6 shadow-xl animate-float-soft text-center max-w-xs">
-            <h3 className="text-lg font-semibold mb-2">Check your email</h3>
-            <p className="text-sm text-slate-300 mb-4">
-              We sent you a verification link.  
-              Open your inbox to finish signing up.
+        <div className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-xl z-50 p-4">
+          <div className="bg-white/10 border border-white/20 rounded-3xl p-8 shadow-2xl text-center max-w-sm w-full animate-fade-in-up">
+            <div className="w-16 h-16 bg-green-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold mb-2">Check your email</h3>
+            <p className="text-slate-400 mb-6">
+              We sent a verification link to <span className="text-white">{email}</span>. Open your inbox to complete your signup.
             </p>
             <button
               onClick={() => navigate('/login')}
-              className="w-full py-2 bg-white text-black rounded-lg font-medium hover:bg-slate-200 transition-colors"
+              className="w-full py-3 bg-gradient-to-r from-violet-600 to-blue-600 text-white rounded-2xl font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-violet-500/25"
             >
-              Continue
+              Go to Sign In
             </button>
           </div>
         </div>
       )}
 
       <style>{`
-        @keyframes slow-orbit {
+        @keyframes float-slow {
           0%, 100% { transform: translate(0, 0); }
-          50% { transform: translate(30px, -30px); }
+          50% { transform: translate(20px, -20px); }
         }
-        @keyframes float-soft {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-10px); }
+        .animate-float-slow { animation: float-slow 15s ease-in-out infinite; }
+        
+        @keyframes fade-in-up {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
         }
-        .animate-slow-orbit { animation: slow-orbit 20s ease-in-out infinite; }
-        .animate-float-soft { animation: float-soft 6s ease-in-out infinite; }
+        .animate-fade-in-up {
+          animation: fade-in-up 0.6s ease-out forwards;
+        }
+        
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-5px); }
+          75% { transform: translateX(5px); }
+        }
+        .animate-shake {
+          animation: shake 0.3s ease-in-out;
+        }
       `}</style>
     </div>
   )
