@@ -234,7 +234,7 @@ function HomePage() {
                     </span>
                   </div>
                   <p className="text-sm mt-1 truncate" style={{ color: 'var(--text-secondary)' }}>
-                    by {commit.commit.author.name}
+                    by tasqlab
                   </p>
                 </div>
               </a>
