@@ -106,6 +106,7 @@ function Sidebar({ activeTab, onTabChange }: { activeTab: Tab; onTabChange: (t: 
 
 function HomePage() {
   const { profiles, friends, dms, groups, user, statuses } = useApp()
+  const [gitCommits, setGitCommits] = useState<GitCommit[]>([])
   const now = new Date()
   const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   const dateStr = now.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })
@@ -113,12 +114,45 @@ function HomePage() {
   const onlineUsers = profiles.filter(p => p.is_online)
   const recentDms = dms.slice(0, 5)
 
-  const updates = [
-    { title: 'Welcome to Velocity!', desc: 'Version 1.0.0 is now live', date: 'New', icon: '🎉' },
-    { title: 'Dark Mode', desc: 'Toggle between light and dark themes', date: 'New', icon: '🌙' },
-    { title: 'Group Chats', desc: 'Create and manage group conversations', date: 'New', icon: '👥' },
-    { title: 'Status Updates', desc: 'Share text, image, or video statuses', date: 'New', icon: '📸' },
-  ]
+  // Fetch git commits on mount and every 30 seconds
+  useEffect(() => {
+    const fetchCommits = async () => {
+      try {
+        const res = await fetch('https://api.github.com/repos/tasqlab/velocity/commits?per_page=10')
+        if (res.ok) {
+          const data = await res.json()
+          setGitCommits(data)
+        }
+      } catch (e) {
+        console.error('Failed to fetch commits:', e)
+      }
+    }
+    fetchCommits()
+    const interval = setInterval(fetchCommits, 30000) // Refresh every 30s
+    return () => clearInterval(interval)
+  }, [])
+
+  const formatCommitDate = (dateStr: string) => {
+    const date = new Date(dateStr)
+    const now = new Date()
+    const diffHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60))
+    if (diffHours < 1) return 'Just now'
+    if (diffHours < 24) return `${diffHours}h ago`
+    if (diffHours < 48) return 'Yesterday'
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric' })
+  }
+
+  const getCommitEmoji = (message: string) => {
+    const lower = message.toLowerCase()
+    if (lower.includes('fix')) return '🐛'
+    if (lower.includes('add') || lower.includes('feature')) return '✨'
+    if (lower.includes('improve') || lower.includes('update') || lower.includes('better')) return '⚡'
+    if (lower.includes('ui') || lower.includes('design') || lower.includes('style')) return '🎨'
+    if (lower.includes('chat') || lower.includes('message')) return '💬'
+    if (lower.includes('router') || lower.includes('route')) return '🚀'
+    if (lower.includes('markdown') || lower.includes('gif')) return '�'
+    return '📦'
+  }
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
@@ -176,22 +210,43 @@ function HomePage() {
           </div>
         </div>
 
-        {/* Updates */}
+        {/* Updates - Dynamic from Git commits */}
         <div className="animate-fade-in" style={{ animationDelay: '200ms' }}>
           <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>What's New</h2>
           <div className="space-y-3">
-            {updates.map((u, i) => (
-              <div key={i} className="flex items-start gap-3 p-4 rounded-xl" style={{ background: 'linear-gradient(135deg, rgba(102,126,234,0.1) 0%, rgba(118,75,162,0.1) 100%)' }}>
-                <span className="text-2xl">{u.icon}</span>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>{u.title}</p>
-                    <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#667eea', color: 'white' }}>{u.date}</span>
+            {gitCommits.length > 0 ? gitCommits.map((commit, i) => (
+              <a 
+                key={commit.sha} 
+                href={commit.html_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-start gap-3 p-4 rounded-xl transition-all hover:scale-[1.02]"
+                style={{ background: 'linear-gradient(135deg, rgba(102,126,234,0.1) 0%, rgba(118,75,162,0.1) 100%)' }}
+              >
+                <span className="text-2xl">{getCommitEmoji(commit.commit.message)}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                      {commit.commit.message.split('\n')[0].slice(0, 50)}{commit.commit.message.length > 50 ? '...' : ''}
+                    </p>
+                    <span className="text-xs px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: '#667eea', color: 'white' }}>
+                      {formatCommitDate(commit.commit.author.date)}
+                    </span>
                   </div>
-                  <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>{u.desc}</p>
+                  <p className="text-sm mt-1 truncate" style={{ color: 'var(--text-secondary)' }}>
+                    by {commit.commit.author.name}
+                  </p>
+                </div>
+              </a>
+            )) : (
+              <div className="flex items-start gap-3 p-4 rounded-xl" style={{ background: 'linear-gradient(135deg, rgba(102,126,234,0.1) 0%, rgba(118,75,162,0.1) 100%)' }}>
+                <span className="text-2xl">⏳</span>
+                <div className="flex-1">
+                  <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>Loading updates...</p>
+                  <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Fetching latest commits from GitHub</p>
                 </div>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>
@@ -360,28 +415,38 @@ function ChatArea({ type, id }: { type: 'dm' | 'group'; id: string }) {
     const now = new Date().toISOString()
     
     // Optimistically add message to UI immediately
-    const optimisticMessage = {
-      id: tempId,
-      sender_id: user.id,
-      content,
-      created_at: now,
-      ...(type === 'dm' ? { receiver_id: id } : { group_id: id })
-    } as DirectMessage | GroupMessage
-    
-    setMessages(prev => [...prev, optimisticMessage])
-    setInput('')
-    
-    // Send to database
     if (type === 'dm') {
+      const optimisticMessage: DirectMessage = {
+        id: tempId,
+        sender_id: user.id,
+        receiver_id: id,
+        content,
+        created_at: now
+      }
+      setMessages(prev => [...(prev as DirectMessage[]), optimisticMessage])
+      setInput('')
+      
+      // Send to database
       const { data } = await supabase.from('direct_messages').insert({ sender_id: user.id, receiver_id: id, content }).select()
       if (data && data[0]) {
         // Replace temp message with real one from DB
-        setMessages(prev => prev.map(m => m.id === tempId ? data[0] as DirectMessage : m))
+        setMessages(prev => (prev as DirectMessage[]).map(m => m.id === tempId ? data[0] as DirectMessage : m))
       }
     } else {
+      const optimisticMessage: GroupMessage = {
+        id: tempId,
+        sender_id: user.id,
+        group_id: id,
+        content,
+        created_at: now
+      }
+      setMessages(prev => [...(prev as GroupMessage[]), optimisticMessage])
+      setInput('')
+      
+      // Send to database
       const { data } = await supabase.from('group_messages').insert({ group_id: id, sender_id: user.id, content }).select()
       if (data && data[0]) {
-        setMessages(prev => prev.map(m => m.id === tempId ? data[0] as GroupMessage : m))
+        setMessages(prev => (prev as GroupMessage[]).map(m => m.id === tempId ? data[0] as GroupMessage : m))
       }
     }
   }
@@ -492,7 +557,7 @@ function ChatArea({ type, id }: { type: 'dm' | 'group'; id: string }) {
               
               <div className={`max-w-[70%] flex flex-col gap-1 ${isMe ? 'items-end' : 'items-start'}`}>
                 {!isMe && showAvatar && sender && <span className="text-xs font-medium px-1" style={{ color: 'var(--text-secondary)' }}>{sender.username}</span>}
-                <div className={`px-5 py-4 rounded-2xl transition-all duration-200 hover:scale-[1.01] ${isMe ? 'rounded-br-md' : 'rounded-bl-md'}`} style={{ background: isMe ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'var(--bg-secondary)', color: isMe ? 'white' : 'var(--text-primary)', boxShadow: isMe ? '0 4px 15px rgba(102,126,234,0.3)' : '0 2px 8px rgba(0,0,0,0.05)' }}>
+                <div className={`px-6 py-5 rounded-2xl transition-all duration-200 hover:scale-[1.01] ${isMe ? 'rounded-br-md' : 'rounded-bl-md'}`} style={{ background: isMe ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'var(--bg-secondary)', color: isMe ? 'white' : 'var(--text-primary)', boxShadow: isMe ? '0 4px 15px rgba(102,126,234,0.3)' : '0 2px 8px rgba(0,0,0,0.05)' }}>
                   <MessageContent content={msg.content} />
                 </div>
                 <span className="text-[10px] opacity-50 px-1">{time}</span>
