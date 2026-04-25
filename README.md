@@ -6,4 +6,4 @@ created using
  - react(vite)
  - windsurf editor and cascade ai
  - minimax m and kimi k 2.5
-> the new version of velocity chat. (also made by me). find it [here](https://tasqlab.github.io/velocity-chat/)
+> the new version of velocity chat. the old one(also made by me). can be found [here](https://tasqlab.github.io/velocity-chat/)
