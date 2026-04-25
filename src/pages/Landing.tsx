@@ -1,57 +1,50 @@
-import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 
 export default function Landing() {
-  const navigate = useNavigate()
-
   return (
-    <div className="h-screen w-screen flex flex-col items-center justify-center relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%)' }}>
-      {/* Animated background */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full opacity-30" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', filter: 'blur(60px)', animation: 'float 6s ease-in-out infinite' }} />
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full opacity-25" style={{ background: 'linear-gradient(135deg, #764ba2 0%, #667eea 100%)', filter: 'blur(80px)', animation: 'float 8s ease-in-out infinite reverse' }} />
-      </div>
+    <div className="h-screen w-screen relative overflow-hidden bg-[#05070b] text-white">
+      {/* animated glass + blobs */}
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-2xl" />
+      <div className="absolute -top-40 -right-40 w-[420px] h-[420px] rounded-full bg-purple-500/25 blur-3xl animate-slow-orbit" />
+      <div className="absolute -bottom-40 -left-40 w-[520px] h-[520px] rounded-full bg-blue-500/25 blur-3xl animate-slow-orbit" />
 
-      <div className="relative z-10 text-center px-6">
-        {/* Logo */}
-        <div className="w-24 h-24 rounded-3xl flex items-center justify-center mx-auto mb-8 transition-transform duration-500 hover:scale-110 hover:rotate-3" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', boxShadow: '0 20px 60px rgba(102,126,234,0.4)' }}>
-          <span className="text-white font-bold text-4xl">V</span>
+      <div className="relative z-10 flex flex-col items-center justify-center h-full px-6 text-center">
+        <div className="max-w-2xl animate-float-soft">
+          <h1 className="text-4xl md:text-6xl font-semibold mb-4">
+            Your space. Your people.
+          </h1>
+          <p className="max-w-xl mx-auto text-slate-200 text-sm md:text-base mb-8">
+            Servers, channels, DMs, and friends — all in one place.  
+            Drop in, talk trash, build something, disappear, come back.
+          </p>
         </div>
 
-        <h1 className="text-6xl font-bold mb-4" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-          Velocity
-        </h1>
-        
-        <p className="text-xl mb-12 text-gray-400 max-w-md mx-auto">
-          Connect with friends in real-time. Chat, share status updates, and more.
-        </p>
+        <div className="flex flex-wrap gap-4 justify-center">
+          <Link to="/login">
+            <button className="px-6 py-3 text-base bg-white text-black hover:bg-slate-200 shadow-[0_18px_60px_rgba(0,0,0,0.9)] rounded-full font-medium transition-all hover:scale-105">
+              Log In
+            </button>
+          </Link>
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <button 
-            onClick={() => navigate('/login')}
-            className="px-8 py-4 rounded-full font-semibold text-lg transition-all duration-300 hover:scale-105 hover:shadow-lg"
-            style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', boxShadow: '0 10px 30px rgba(102,126,234,0.3)' }}
-          >
-            Get Started
-          </button>
-          <button 
-            onClick={() => navigate('/login')}
-            className="px-8 py-4 rounded-full font-semibold text-lg transition-all duration-300 hover:scale-105 border-2"
-            style={{ borderColor: '#667eea', color: '#667eea' }}
-          >
-            Sign In
-          </button>
+          <Link to="/signup">
+            <button className="px-6 py-3 text-base bg-white/10 hover:bg-white/20 border border-white/25 backdrop-blur-xl shadow-[0_18px_60px_rgba(0,0,0,0.9)] rounded-full font-medium transition-all hover:scale-105">
+              Sign Up
+            </button>
+          </Link>
         </div>
-
-        <p className="mt-12 text-sm text-gray-500">
-          By continuing, you agree to our Terms of Service
-        </p>
       </div>
 
       <style>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0) rotate(0deg); }
-          50% { transform: translateY(-20px) rotate(5deg); }
+        @keyframes slow-orbit {
+          0%, 100% { transform: translate(0, 0); }
+          50% { transform: translate(30px, -30px); }
         }
+        @keyframes float-soft {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
+        }
+        .animate-slow-orbit { animation: slow-orbit 20s ease-in-out infinite; }
+        .animate-float-soft { animation: float-soft 6s ease-in-out infinite; }
       `}</style>
     </div>
   )
