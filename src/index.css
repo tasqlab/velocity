@@ -1,74 +1,113 @@
 @import "tailwindcss";
 
-@import url("https://fonts.googleapis.com/css2?family=Geologica:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap");
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @theme {
-  --font-sans: "Inter", "Geologica", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-html,
-body,
-#root {
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f3f4f6;
+  --bg-tertiary: #e5e7eb;
+  --bg-hover: #f9fafb;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+  --accent: #667eea;
+  --accent-hover: #5a67d8;
+  --accent-light: #e0e7ff;
+  --border: #e5e7eb;
+  --border-strong: #d1d5db;
+}
+
+.dark {
+  --bg-primary: #0f0f0f;
+  --bg-secondary: #1a1a1a;
+  --bg-tertiary: #262626;
+  --bg-hover: #2d2d2d;
+  --text-primary: #f9fafb;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+  --accent: #667eea;
+  --accent-hover: #818cf8;
+  --accent-light: #312e81;
+  --border: #262626;
+  --border-strong: #404040;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
   height: 100%;
+  width: 100%;
+  overflow: hidden;
 }
 
 body {
-  @apply bg-[#05070b] text-white overflow-hidden;
-  font-family: "Geologica", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* Animations */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in-left {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.5s ease-out forwards;
+  opacity: 0;
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 0.4s ease-out forwards;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
 }
 
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
+  height: 6px;
 }
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.5);
-  border-radius: 999px;
-}
-:root {
-  --bg: #05070b;
-  --panel: #05070b;
+  background: #3a3a3a;
+  border-radius: 3px;
 }
 
-.theme-neon {
-  --bg: #050816;
-  --panel: #0b1020;
-}
-
-body {
-  background-color: var(--bg);
-}
-
-/* simple custom animations */
-
-@keyframes float-soft {
-  0% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-  100% {
-    transform: translateY(0px);
-  }
-}
-
-@keyframes slow-orbit {
-  0% {
-    transform: translate(-10%, -10%) rotate(0deg);
-  }
-  50% {
-    transform: translate(5%, 5%) rotate(180deg);
-  }
-  100% {
-    transform: translate(-10%, -10%) rotate(360deg);
-  }
-}
-
-.animate-float-soft {
-  animation: float-soft 6s ease-in-out infinite;
-}
-
-.animate-slow-orbit {
-  animation: slow-orbit 30s linear infinite;
+::-webkit-scrollbar-thumb:hover {
+  background: #4a4a4a;
 }
