@@ -154,20 +154,20 @@ function HomePage() {
     return '📦'
   }
 
-  // Widget definitions
+  // Widget definitions - example.html.txt inspired palette
   const widgets = [
-    { id: 'time', title: 'Time', icon: '🕐', value: timeStr, sub: dateStr, color: '#667eea' },
-    { id: 'online', title: 'Online', icon: '🟢', value: onlineUsers.length, sub: 'users', color: '#10b981' },
-    { id: 'chats', title: 'Messages', icon: '💬', value: dms.length, sub: 'total', color: '#8b5cf6' },
-    { id: 'groups', title: 'Groups', icon: '👥', value: groups.length, sub: 'joined', color: '#ec4899' },
+    { id: 'time', title: 'Time', icon: '🕐', value: timeStr, sub: dateStr, color: '#3b82f6' },
+    { id: 'online', title: 'Online', icon: '🟢', value: onlineUsers.length, sub: 'users', color: '#22c55e' },
+    { id: 'chats', title: 'Messages', icon: '💬', value: dms.length, sub: 'total', color: '#60a5fa' },
+    { id: 'groups', title: 'Groups', icon: '👥', value: groups.length, sub: 'joined', color: '#06b6d4' },
     { id: 'status', title: 'Status', icon: '📸', value: statuses.length, sub: 'updates', color: '#f59e0b' },
-    { id: 'friends', title: 'Friends', icon: '🤝', value: friends.length, sub: 'connected', color: '#06b6d4' },
+    { id: 'friends', title: 'Friends', icon: '🤝', value: friends.length, sub: 'connected', color: '#a78bfa' },
   ]
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
       <div className="px-8 py-6" style={{ borderBottom: '1px solid var(--border)' }}>
-        <h1 className="text-2xl font-bold tracking-tight" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Velocity</h1>
+        <h1 className="text-2xl font-bold tracking-tight" style={{ background: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Velocity</h1>
         <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>{dateStr} · {timeStr}</p>
       </div>
       <div className="flex-1 overflow-y-auto p-8 space-y-8">
@@ -497,72 +497,97 @@ function ChatArea({ type, id }: { type: 'dm' | 'group'; id: string }) {
   return (
     <div className="flex-1 flex flex-col h-full" style={{ background: 'var(--bg-primary)' }}>
       {/* Header */}
-      <div className="h-16 px-6 flex items-center gap-4" style={{ borderBottom: '1px solid var(--border)' }}>
+      <div className="relative z-10 px-5 py-3 flex items-center gap-3" style={{ borderBottom: '1px solid rgba(59,130,246,0.1)' }}>
         <button 
           onClick={() => type === 'dm' ? setShowProfileInfo(true) : setShowGroupInfo(true)}
           className="flex items-center gap-3 flex-1 hover:opacity-80 transition-opacity"
         >
-          <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center" style={{ background: type === 'group' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'var(--bg-secondary)' }}>
-            {avatar ? <img src={avatar} alt="" className="w-full h-full object-cover" /> : <span className="font-semibold text-white">{title?.[0]?.toUpperCase()}</span>}
+          <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center" style={{ background: type === 'group' ? 'linear-gradient(135deg, #2563eb, #06b6d4)' : 'rgba(12,22,48,0.6)', border: '1px solid rgba(59,130,246,0.12)' }}>
+            {avatar ? <img src={avatar} alt="" className="w-full h-full object-cover" /> : <span className="font-semibold text-sm" style={{ color: type === 'group' ? 'white' : 'var(--text-primary)' }}>{title?.[0]?.toUpperCase()}</span>}
           </div>
           <div className="flex-1">
-            <h2 className="font-semibold" style={{ color: 'var(--text-primary)' }}>{title}</h2>
-            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-              {type === 'dm' ? (profile?.is_online ? 'Online' : 'Offline') : `${groupMembers.length} members`}
+            <h2 className="font-bold text-[15px] tracking-tight" style={{ color: 'var(--text-primary)' }}>{title}</h2>
+            <p className="text-[11px] mt-0.5 flex items-center gap-1.5" style={{ color: '#60a5fa' }}>
+              {type === 'dm' ? (
+                <>
+                  {profile?.is_online && <span className="w-[5px] h-[5px] rounded-full bg-green-500 inline-block" style={{ boxShadow: '0 0 6px #22c55e' }} />}
+                  {profile?.is_online ? 'Online' : 'Offline'}
+                </>
+              ) : (
+                <>{groupMembers.length} members</>
+              )}
             </p>
           </div>
         </button>
         
         {/* Action buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {type === 'dm' && (
-            <button className="p-2.5 rounded-full hover:bg-black/5 transition-colors" style={{ color: 'var(--text-secondary)' }} title="Voice call">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+            <button className="w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:bg-white/5" style={{ color: 'rgba(160,190,240,0.35)', fontSize: '15px' }} title="Voice call">
+              📞
             </button>
           )}
           {type === 'dm' && (
-            <button className="p-2.5 rounded-full hover:bg-black/5 transition-colors" style={{ color: 'var(--text-secondary)' }} title="Video call">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+            <button className="w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:bg-white/5" style={{ color: 'rgba(160,190,240,0.35)', fontSize: '15px' }} title="Video call">
+              🎥
             </button>
           )}
           {type === 'group' && (
-            <button onClick={() => setShowInvite(true)} className="p-2.5 rounded-full hover:bg-black/5 transition-colors" style={{ color: 'var(--text-secondary)' }} title="Add member">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
+            <button onClick={() => setShowInvite(true)} className="w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:bg-white/5" style={{ color: 'rgba(160,190,240,0.35)', fontSize: '15px' }} title="Add member">
+              👤+
             </button>
           )}
           <button 
             onClick={() => type === 'dm' ? setShowProfileInfo(true) : setShowGroupInfo(true)}
-            className="p-2.5 rounded-full hover:bg-black/5 transition-colors"
-            style={{ color: 'var(--text-secondary)' }}
+            className="w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:bg-white/5"
+            style={{ color: 'rgba(160,190,240,0.35)', fontSize: '17px' }}
             title="Info"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            ⋮
           </button>
         </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4">
+      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-1" style={{ background: 'var(--bg-primary)' }}>
+        {/* Subtle chat background gradient overlay */}
+        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse 60% 50% at 20% 30%, rgba(37,99,235,0.04) 0%, transparent 60%), radial-gradient(ellipse 50% 60% at 80% 70%, rgba(6,182,212,0.03) 0%, transparent 60%)' }} />
+        
         {messages.map((msg, index) => {
           const isMe = msg.sender_id === user?.id
           const sender = profiles.find(p => p.id === msg.sender_id)
           const showAvatar = !isMe && (index === 0 || messages[index - 1].sender_id !== msg.sender_id)
           const time = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          const isNewGroup = index === 0 || messages[index - 1].sender_id !== msg.sender_id
           
           return (
-            <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} items-end gap-3 group`}>
+            <div key={msg.id} className={`relative z-10 flex ${isMe ? 'justify-end' : 'justify-start'} items-end gap-2 ${isNewGroup ? 'mt-3' : ''}`}>
               {!isMe && showAvatar ? (
-                <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center" style={{ background: 'var(--bg-tertiary)' }}>
+                <div className="w-7 h-7 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center" style={{ background: 'rgba(12,22,48,0.6)', border: '1px solid rgba(59,130,246,0.1)' }}>
                   {sender?.avatar_url ? <img src={sender.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{sender?.username?.[0]?.toUpperCase() || '?'}</span>}
                 </div>
-              ) : !isMe ? <div className="w-8 flex-shrink-0" /> : null}
+              ) : !isMe ? <div className="w-7 flex-shrink-0" /> : null}
               
-              <div className={`max-w-[70%] flex flex-col gap-1 ${isMe ? 'items-end' : 'items-start'}`}>
-                {!isMe && showAvatar && sender && <span className="text-xs font-medium px-1" style={{ color: 'var(--text-secondary)' }}>{sender.username}</span>}
-                <div className={`px-6 py-5 rounded-2xl transition-all duration-200 hover:scale-[1.01] ${isMe ? 'rounded-br-md' : 'rounded-bl-md'}`} style={{ background: isMe ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'var(--bg-secondary)', color: isMe ? 'white' : 'var(--text-primary)', boxShadow: isMe ? '0 4px 15px rgba(102,126,234,0.3)' : '0 2px 8px rgba(0,0,0,0.05)' }}>
-                  <MessageContent content={msg.content} />
+              <div className={`max-w-[68%] flex flex-col gap-0.5 ${isMe ? 'items-end' : 'items-start'}`}>
+                {!isMe && showAvatar && sender && <span className="text-[11px] font-semibold ml-1" style={{ color: 'rgba(191,219,254,0.7)' }}>{sender.username}</span>}
+                <div 
+                  className={`px-4 py-2.5 backdrop-blur-md transition-all duration-200 ${isMe ? 'rounded-2xl rounded-br-sm' : 'rounded-2xl rounded-bl-sm'}`}
+                  style={{ 
+                    background: isMe ? 'rgba(37, 99, 235, 0.82)' : 'rgba(12, 22, 50, 0.6)',
+                    border: isMe ? '1px solid rgba(59,130,246,0.3)' : '1px solid rgba(59,130,246,0.08)',
+                    color: isMe ? '#dbeafe' : 'var(--text-primary)',
+                    boxShadow: isMe ? '0 2px 16px rgba(37,99,235,0.25)' : '0 2px 12px rgba(0,0,0,0.3)'
+                  }}
+                >
+                  {/* Glass shine on outgoing */}
+                  {isMe && (
+                    <div className="absolute inset-0 pointer-events-none rounded-2xl rounded-br-sm" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 50%)' }} />
+                  )}
+                  <div className="relative z-10">
+                    <MessageContent content={msg.content} />
+                  </div>
                 </div>
-                <span className="text-[10px] opacity-50 px-1">{time}</span>
+                <span className="text-[9px] font-mono opacity-40 px-1" style={{ color: 'var(--text-muted)' }}>{time}</span>
               </div>
             </div>
           )
@@ -571,33 +596,43 @@ function ChatArea({ type, id }: { type: 'dm' | 'group'; id: string }) {
       </div>
 
       {/* Input area */}
-      <div className="p-4" style={{ borderTop: '1px solid var(--border)' }}>
-        <div className="flex items-center gap-4 px-6 py-4 rounded-full" style={{ background: 'var(--bg-secondary)' }}>
-          <button className="p-3 rounded-full hover:bg-black/10 transition-colors" style={{ color: 'var(--text-muted)' }} title="Add attachment">
+      <div className="p-3" style={{ borderTop: '1px solid var(--border)' }}>
+        <div className="flex items-end gap-2.5">
+          <button className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:scale-105" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', color: 'var(--text-muted)' }} title="Attach">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
           </button>
-          <button className="p-3 rounded-full hover:bg-black/10 transition-colors" style={{ color: 'var(--text-muted)' }} title="GIF">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-          </button>
-          <input 
-            type="text" 
-            value={input} 
-            onChange={(e) => setInput(e.target.value)} 
-            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()} 
-            placeholder="Type a message... (Markdown supported: **bold**, *italic*, # header)" 
-            className="flex-1 bg-transparent outline-none text-base py-1"
-            style={{ color: 'var(--text-primary)' }}
-          />
+          
+          <div className="flex-1 flex items-end gap-2 rounded-2xl px-4 py-3 transition-all" style={{ background: 'rgba(12, 22, 48, 0.7)', border: '1px solid rgba(59,130,246,0.15)' }}>
+            <textarea 
+              value={input} 
+              onChange={(e) => setInput(e.target.value)} 
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+              placeholder="Message" 
+              rows={1}
+              className="flex-1 bg-transparent outline-none resize-none text-sm leading-relaxed"
+              style={{ 
+                color: 'var(--text-primary)', 
+                minHeight: '22px', 
+                maxHeight: '110px',
+                fontFamily: '"Plus Jakarta Sans", sans-serif'
+              }}
+            />
+            <button className="text-lg leading-none pb-0.5 transition-transform hover:scale-110" style={{ color: 'var(--text-muted)' }}>😄</button>
+          </div>
+          
           <button 
             onClick={sendMessage} 
             disabled={!input.trim()}
-            className="p-3 rounded-full transition-all disabled:opacity-50 hover:scale-105"
-            style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}
+            className="w-10 h-10 rounded-xl flex items-center justify-center transition-all disabled:opacity-40 hover:scale-105"
+            style={{ 
+              background: 'linear-gradient(135deg, #2563eb, #06b6d4)', 
+              color: 'white',
+              boxShadow: '0 0 18px rgba(37,99,235,0.35), inset 0 1px 0 rgba(255,255,255,0.15)'
+            }}
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
           </button>
         </div>
-        <p className="text-[10px] text-center mt-2 opacity-40">Press Enter to send, Shift+Enter for new line</p>
       </div>
 
       {showInvite && (
