@@ -48,8 +48,8 @@ function extractGifUrl(text: string): string | null {
 
 interface Profile { id: string; username: string; avatar_url: string | null; description: string | null; phone: string | null; is_online: boolean }
 interface GroupChat { id: string; name: string; avatar_url: string | null }
-interface DirectMessage { id: string; sender_id: string; receiver_id: string; content: string; created_at: string }
-interface GroupMessage { id: string; group_id: string; sender_id: string; content: string; created_at: string }
+interface DirectMessage { id: string; sender_id: string; receiver_id: string; content: string; created_at: string; reply_to_id?: string; audio_url?: string; is_pinned?: boolean; pinned_at?: string; scheduled_for?: string }
+interface GroupMessage { id: string; group_id: string; sender_id: string; content: string; created_at: string; reply_to_id?: string; audio_url?: string; is_pinned?: boolean; pinned_at?: string; scheduled_for?: string }
 interface StatusUpdate { id: string; user_id: string; content: string | null; media_url: string | null; media_type: string | null; created_at: string }
 
 type Tab = 'home' | 'chat' | 'status' | 'calls' | 'settings'
@@ -449,6 +449,35 @@ function ChatArea({ type, id }: { type: 'dm' | 'group'; id: string }) {
   
   // Feature 4: Push notifications
   const [notificationsEnabled, setNotificationsEnabled] = useState(false)
+  
+  // Feature 5: Message search
+  const [showSearch, setShowSearch] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [messageSearchResults, setMessageSearchResults] = useState<(DirectMessage | GroupMessage)[]>([])
+  
+  // Feature 6: Threaded replies
+  const [replyTo, setReplyTo] = useState<DirectMessage | GroupMessage | null>(null)
+  
+  // Feature 7: Voice messages
+  const [isRecording, setIsRecording] = useState(false)
+  const [recordingTime, setRecordingTime] = useState(0)
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  
+  // Feature 8: Video calls
+  const [activeCall, setActiveCall] = useState<{type: 'video' | 'audio', roomUrl: string} | null>(null)
+  
+  // Feature 9: Message drafts
+  const [draftLoaded, setDraftLoaded] = useState(false)
+  
+  // Feature 10: Scheduled messages
+  const [showSchedule, setShowSchedule] = useState(false)
+  const [scheduledTime, setScheduledTime] = useState('')
+  
+  // Feature 11: Pinned messages
+  const [pinnedMessages, setPinnedMessages] = useState<(DirectMessage | GroupMessage)[]>([])
+  const [showPinned, setShowPinned] = useState(false)
 
   useEffect(() => {
     if (type === 'dm') {
@@ -533,6 +562,241 @@ function ChatArea({ type, id }: { type: 'dm' | 'group'; id: string }) {
     if (!('Notification' in window)) return
     const permission = await Notification.requestPermission()
     setNotificationsEnabled(permission === 'granted')
+  }
+
+  // Feature 5: Message search
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setMessageSearchResults([])
+      return
+    }
+    const filtered = messages.filter(m => 
+      m.content.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    setMessageSearchResults(filtered)
+  }, [searchQuery, messages])
+
+  // Feature 9: Load draft on mount
+  useEffect(() => {
+    if (!user || draftLoaded) return
+    const loadDraft = async () => {
+      const { data } = await supabase.from('message_drafts')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('chat_id', id)
+        .eq('chat_type', type)
+        .single()
+      if (data?.content) {
+        setInput(data.content)
+      }
+      setDraftLoaded(true)
+    }
+    loadDraft()
+  }, [user, id, type, draftLoaded])
+
+  // Feature 9: Auto-save draft
+  useEffect(() => {
+    if (!user || !draftLoaded) return
+    const saveDraft = async () => {
+      if (input.trim()) {
+        await supabase.from('message_drafts').upsert({
+          user_id: user.id,
+          chat_id: id,
+          chat_type: type,
+          content: input,
+          updated_at: new Date().toISOString()
+        })
+      } else {
+        await supabase.from('message_drafts')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('chat_id', id)
+          .eq('chat_type', type)
+      }
+    }
+    const timeout = setTimeout(saveDraft, 1000)
+    return () => clearTimeout(timeout)
+  }, [input, user, id, type, draftLoaded])
+
+  // Feature 11: Fetch pinned messages
+  useEffect(() => {
+    const fetchPinned = async () => {
+      const table = type === 'dm' ? 'direct_messages' : 'group_messages'
+      const query = type === 'dm' 
+        ? supabase.from(table).select('*').or(`and(sender_id.eq.${user?.id},receiver_id.eq.${id}),and(sender_id.eq.${id},receiver_id.eq.${user?.id})`).eq('is_pinned', true).order('pinned_at', { ascending: false })
+        : supabase.from(table).select('*').eq('group_id', id).eq('is_pinned', true).order('pinned_at', { ascending: false })
+      const { data } = await query
+      if (data) setPinnedMessages(data)
+    }
+    fetchPinned()
+  }, [type, id, user?.id, messages])
+
+  // Feature 7: Voice recording functions
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mediaRecorder = new MediaRecorder(stream)
+      mediaRecorderRef.current = mediaRecorder
+      const chunks: BlobPart[] = []
+      
+      mediaRecorder.ondataavailable = (e) => chunks.push(e.data)
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'audio/webm' })
+        setAudioBlob(blob)
+        stream.getTracks().forEach(t => t.stop())
+      }
+      
+      mediaRecorder.start()
+      setIsRecording(true)
+      setRecordingTime(0)
+      
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingTime(t => t + 1)
+      }, 1000)
+    } catch (err) {
+      console.error('Failed to start recording:', err)
+    }
+  }
+
+  const stopRecording = () => {
+    mediaRecorderRef.current?.stop()
+    setIsRecording(false)
+    if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current)
+  }
+
+  const cancelRecording = () => {
+    mediaRecorderRef.current?.stop()
+    setIsRecording(false)
+    setAudioBlob(null)
+    setRecordingTime(0)
+    if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current)
+  }
+
+  const sendVoiceMessage = async () => {
+    if (!audioBlob || !user) return
+    
+    setUploadingFile(true)
+    try {
+      const fileName = `voice_${Date.now()}.webm`
+      const filePath = `${user.id}/${fileName}`
+      
+      const { error: uploadError } = await supabase.storage
+        .from('voice-messages')
+        .upload(filePath, audioBlob)
+      
+      if (uploadError) throw uploadError
+      
+      const { data: urlData } = supabase.storage.from('voice-messages').getPublicUrl(filePath)
+      
+      // Send voice message
+      if (type === 'dm') {
+        await supabase.from('direct_messages').insert({
+          sender_id: user.id,
+          receiver_id: id,
+          audio_url: urlData.publicUrl,
+          content: '🎤 Voice message'
+        })
+      } else {
+        await supabase.from('group_messages').insert({
+          group_id: id,
+          sender_id: user.id,
+          audio_url: urlData.publicUrl,
+          content: '🎤 Voice message'
+        })
+      }
+      
+      setAudioBlob(null)
+      setRecordingTime(0)
+    } catch (err) {
+      console.error('Voice upload failed:', err)
+    } finally {
+      setUploadingFile(false)
+    }
+  }
+
+  // Feature 8: Video call functions
+  const startVideoCall = async (callType: 'video' | 'audio') => {
+    if (!user || type !== 'dm') return
+    
+    const roomUrl = `https://meet.jit.si/velocity_${user.id}_${id}_${Date.now()}`
+    
+    // Store call record
+    await supabase.from('video_calls').insert({
+      caller_id: user.id,
+      callee_id: id,
+      status: 'ringing',
+      call_type: callType,
+      room_url: roomUrl
+    })
+    
+    setActiveCall({ type: callType, roomUrl })
+  }
+
+  const endCall = () => {
+    setActiveCall(null)
+  }
+
+  // Feature 6: Reply function
+  const sendReply = async () => {
+    if (!input.trim() || !user || !replyTo) return
+    
+    const content = input.trim()
+    setInput('')
+    setReplyTo(null)
+    
+    const table = type === 'dm' ? 'direct_messages' : 'group_messages'
+    const insertData = type === 'dm' 
+      ? { sender_id: user.id, receiver_id: id, content, reply_to_id: replyTo.id }
+      : { group_id: id, sender_id: user.id, content, reply_to_id: replyTo.id }
+    
+    await supabase.from(table).insert(insertData)
+  }
+
+  // Feature 10: Schedule message
+  const scheduleMessage = async () => {
+    if (!input.trim() || !user || !scheduledTime) return
+    
+    const content = input.trim()
+    const scheduledFor = new Date(scheduledTime).toISOString()
+    
+    if (type === 'dm') {
+      await supabase.from('direct_messages').insert({
+        sender_id: user.id,
+        receiver_id: id,
+        content,
+        scheduled_for: scheduledFor
+      })
+    } else {
+      await supabase.from('group_messages').insert({
+        group_id: id,
+        sender_id: user.id,
+        content,
+        scheduled_for: scheduledFor
+      })
+    }
+    
+    setInput('')
+    setShowSchedule(false)
+    setScheduledTime('')
+  }
+
+  // Feature 11: Pin/unpin message
+  const togglePinMessage = async (msg: DirectMessage | GroupMessage) => {
+    const table = type === 'dm' ? 'direct_messages' : 'group_messages'
+    const newPinned = !msg.is_pinned
+    
+    await supabase.from(table)
+      .update({ 
+        is_pinned: newPinned, 
+        pinned_at: newPinned ? new Date().toISOString() : null 
+      })
+      .eq('id', msg.id)
+    
+    // Refresh pinned messages
+    const { data } = await supabase.from(table).select('*')
+      .eq(type === 'dm' ? 'sender_id' : 'group_id', type === 'dm' ? user?.id : id)
+      .eq('is_pinned', true)
+    if (data) setPinnedMessages(data)
   }
 
   // Feature 1: Send typing status
@@ -705,19 +969,25 @@ function ChatArea({ type, id }: { type: 'dm' | 'group'; id: string }) {
   const title = type === 'dm' ? profile?.username : group?.name
   const avatar = type === 'dm' ? profile?.avatar_url : group?.avatar_url
 
-  // Message component with markdown and GIF support
-  const MessageContent = ({ content }: { content: string }) => {
+  // Message component with markdown, GIF, and voice message support
+  const MessageContent = ({ content, audioUrl }: { content: string; audioUrl?: string }) => {
     const gifUrl = extractGifUrl(content)
     const textContent = content.replace(gifUrl || '', '').trim()
+    const isVoiceMessage = content.includes('🎤 Voice message') && audioUrl
     
     return (
       <div className="space-y-2">
+        {isVoiceMessage && audioUrl && (
+          <div className="flex items-center gap-2">
+            <audio controls className="max-w-[200px] h-8" src={audioUrl} />
+          </div>
+        )}
         {gifUrl && (
           <div className="rounded-xl overflow-hidden max-w-xs">
             <img src={gifUrl} alt="GIF" className="w-full h-auto" loading="lazy" />
           </div>
         )}
-        {textContent && (
+        {!isVoiceMessage && textContent && (
           <div 
             className="leading-relaxed text-base prose prose-invert max-w-none"
             dangerouslySetInnerHTML={{ __html: parseMarkdown(textContent) }}
@@ -765,16 +1035,47 @@ function ChatArea({ type, id }: { type: 'dm' | 'group'; id: string }) {
           </div>
         </button>
         
-        {/* Action buttons - exact match to example */}
+        {/* Action buttons with functionality */}
         <div className="flex items-center gap-1">
           {type === 'dm' && (
-            <button className="w-9 h-9 rounded-lg flex items-center justify-center transition-all hover:bg-white/5" style={{ color: 'rgba(160,190,240,0.35)' }} title="Voice call">📞</button>
+            <button 
+              onClick={() => startVideoCall('audio')}
+              className="w-9 h-9 rounded-lg flex items-center justify-center transition-all hover:bg-white/5" 
+              style={{ color: 'rgba(160,190,240,0.35)' }} 
+              title="Voice call"
+            >📞</button>
           )}
           {type === 'dm' && (
-            <button className="w-9 h-9 rounded-lg flex items-center justify-center transition-all hover:bg-white/5" style={{ color: 'rgba(160,190,240,0.35)' }} title="Video call">🎥</button>
+            <button 
+              onClick={() => startVideoCall('video')}
+              className="w-9 h-9 rounded-lg flex items-center justify-center transition-all hover:bg-white/5" 
+              style={{ color: 'rgba(160,190,240,0.35)' }} 
+              title="Video call"
+            >🎥</button>
           )}
-          <button className="w-9 h-9 rounded-lg flex items-center justify-center transition-all hover:bg-white/5" style={{ color: 'rgba(160,190,240,0.35)' }} title="Search">�</button>
-          <button onClick={() => type === 'dm' ? setShowProfileInfo(true) : setShowGroupInfo(true)} className="w-9 h-9 rounded-lg flex items-center justify-center transition-all hover:bg-white/5" style={{ color: 'rgba(160,190,240,0.35)' }} title="More">⋮</button>
+          {pinnedMessages.length > 0 && (
+            <button 
+              onClick={() => setShowPinned(true)}
+              className="w-9 h-9 rounded-lg flex items-center justify-center transition-all hover:bg-white/5 relative" 
+              style={{ color: 'rgba(160,190,240,0.35)' }} 
+              title="Pinned messages"
+            >
+              📌
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-blue-500 text-[10px] flex items-center justify-center text-white">{pinnedMessages.length}</span>
+            </button>
+          )}
+          <button 
+            onClick={() => setShowSearch(true)}
+            className="w-9 h-9 rounded-lg flex items-center justify-center transition-all hover:bg-white/5" 
+            style={{ color: 'rgba(160,190,240,0.35)' }} 
+            title="Search"
+          >🔍</button>
+          <button 
+            onClick={() => type === 'dm' ? setShowProfileInfo(true) : setShowGroupInfo(true)} 
+            className="w-9 h-9 rounded-lg flex items-center justify-center transition-all hover:bg-white/5" 
+            style={{ color: 'rgba(160,190,240,0.35)' }} 
+            title="More"
+          >⋮</button>
         </div>
       </div>
 
@@ -814,23 +1115,52 @@ function ChatArea({ type, id }: { type: 'dm' | 'group'; id: string }) {
                     }}>
                     {isMe && <div className="absolute inset-0 pointer-events-none rounded-2xl rounded-br-md" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 50%)' }} />}
                     <div className="relative z-10">
-                      <MessageContent content={msg.content} />
+                      {/* Feature 6: Show reply reference */}
+                      {(msg as any).reply_to_id && (
+                        <div className="mb-2 px-2 py-1 rounded text-xs opacity-70" style={{ background: 'rgba(0,0,0,0.2)', borderLeft: '2px solid rgba(96,165,250,0.5)' }}>
+                          <span style={{ color: 'rgba(160,190,240,0.8)' }}>Replying to message</span>
+                        </div>
+                      )}
+                      {/* Feature 7: Show voice messages */}
+                      <MessageContent content={msg.content} audioUrl={(msg as any).audio_url} />
                     </div>
                   </div>
                   
-                  {/* Feature 2: Reaction button - appears on hover */}
-                  <button 
-                    onClick={() => setShowReactionPicker(showReactionPicker === msg.id ? null : msg.id)}
-                    className="absolute -top-2 opacity-0 group-hover/message:opacity-100 transition-opacity z-20 w-6 h-6 rounded-full flex items-center justify-center text-xs"
-                    style={{ 
-                      background: 'rgba(12,22,48,0.9)', 
-                      border: '1px solid rgba(59,130,246,0.2)',
-                      color: 'rgba(160,190,240,0.6)',
-                      [isMe ? 'left' : 'right']: '-8px'
-                    }}
-                  >
-                    😊
-                  </button>
+                  {/* Feature 2, 6, 11: Action buttons - appears on hover */}
+                  <div className={`absolute -top-3 opacity-0 group-hover/message:opacity-100 transition-opacity z-20 flex gap-1`}
+                    style={{ [isMe ? 'left' : 'right']: '-40px' }}>
+                    <button 
+                      onClick={() => setReplyTo(msg)}
+                      className="w-6 h-6 rounded-full flex items-center justify-center text-xs"
+                      style={{ 
+                        background: 'rgba(12,22,48,0.9)', 
+                        border: '1px solid rgba(59,130,246,0.2)',
+                        color: 'rgba(160,190,240,0.6)'
+                      }}
+                      title="Reply"
+                    >↩️</button>
+                    <button 
+                      onClick={() => setShowReactionPicker(showReactionPicker === msg.id ? null : msg.id)}
+                      className="w-6 h-6 rounded-full flex items-center justify-center text-xs"
+                      style={{ 
+                        background: 'rgba(12,22,48,0.9)', 
+                        border: '1px solid rgba(59,130,246,0.2)',
+                        color: 'rgba(160,190,240,0.6)'
+                      }}
+                    >
+                      😊
+                    </button>
+                    <button 
+                      onClick={() => togglePinMessage(msg)}
+                      className="w-6 h-6 rounded-full flex items-center justify-center text-xs"
+                      style={{ 
+                        background: msg.is_pinned ? 'rgba(37,99,235,0.5)' : 'rgba(12,22,48,0.9)', 
+                        border: '1px solid rgba(59,130,246,0.2)',
+                        color: msg.is_pinned ? '#60a5fa' : 'rgba(160,190,240,0.6)'
+                      }}
+                      title={msg.is_pinned ? 'Unpin' : 'Pin'}
+                    >📌</button>
+                  </div>
                   
                   {/* Feature 2: Reaction picker */}
                   {showReactionPicker === msg.id && (
@@ -893,41 +1223,104 @@ function ChatArea({ type, id }: { type: 'dm' | 'group'; id: string }) {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input area with file upload */}
+      {/* Input area with file upload, voice recording, reply, and schedule */}
       <div className="relative z-10 p-3" style={{ borderTop: '1px solid var(--border)' }}>
-        <div className="flex items-end gap-2">
-          {/* Feature 3: File attachment */}
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            className="hidden" 
-            accept="image/*,.pdf,.doc,.docx,.txt"
-            onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
-          />
-          <button 
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploadingFile}
-            className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:scale-105 disabled:opacity-50"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', color: 'var(--text-muted)' }} 
-            title="Attach"
-          >
-            {uploadingFile ? (
-              <div className="w-4 h-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
-            ) : '📎'}
-          </button>
-          
-          <div className="flex-1 flex items-end gap-2 rounded-xl px-3 py-2.5" style={{ background: 'rgba(12, 22, 48, 0.7)', border: '1px solid rgba(59,130,246,0.15)' }}>
-            <textarea value={input} onChange={(e) => handleInputChange(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} placeholder="Message" rows={1}
-              className="flex-1 bg-transparent outline-none resize-none text-sm leading-relaxed max-h-28"
-              style={{ color: 'var(--text-primary)', minHeight: '22px', fontFamily: '"Plus Jakarta Sans", sans-serif' }} />
-            <button className="text-lg leading-none pb-0.5 transition-transform hover:scale-110" style={{ color: 'var(--text-muted)' }}>😄</button>
+        {/* Feature 6: Reply preview */}
+        {replyTo && (
+          <div className="mb-2 px-3 py-2 rounded-xl flex items-center justify-between" style={{ background: 'rgba(37,99,235,0.1)', border: '1px solid rgba(59,130,246,0.2)' }}>
+            <div className="flex items-center gap-2">
+              <span className="text-xs" style={{ color: 'rgba(160,190,240,0.6)' }}>↩️ Replying to:</span>
+              <span className="text-xs truncate max-w-[200px]" style={{ color: 'var(--text-secondary)' }}>{replyTo.content.slice(0, 50)}...</span>
+            </div>
+            <button onClick={() => setReplyTo(null)} className="text-xs px-2 py-1 rounded hover:text-white transition-colors" style={{ color: 'var(--text-muted)' }}>✕</button>
           </div>
-          
-          <button onClick={sendMessage} disabled={!input.trim()} className="w-10 h-10 rounded-xl flex items-center justify-center transition-all disabled:opacity-40 hover:scale-105"
-            style={{ background: 'linear-gradient(135deg, #2563eb, #06b6d4)', color: 'white', boxShadow: '0 0 18px rgba(37,99,235,0.35)' }}>
-            ➤
-          </button>
-        </div>
+        )}
+        
+        {/* Feature 7: Voice recording UI */}
+        {isRecording ? (
+          <div className="flex items-center gap-3 px-4 py-3 rounded-xl" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
+              <span className="text-sm font-mono" style={{ color: '#ef4444' }}>{Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}</span>
+            </div>
+            <span className="text-sm" style={{ color: 'var(--text-muted)' }}>Recording...</span>
+            <div className="flex-1" />
+            <button onClick={cancelRecording} className="px-3 py-1.5 rounded-lg text-sm" style={{ color: 'var(--text-muted)' }}>Cancel</button>
+            <button onClick={stopRecording} className="px-4 py-1.5 rounded-lg text-sm text-white" style={{ background: '#ef4444' }}>Stop</button>
+          </div>
+        ) : audioBlob ? (
+          <div className="flex items-center gap-3 px-4 py-3 rounded-xl" style={{ background: 'rgba(37,99,235,0.1)', border: '1px solid rgba(59,130,246,0.2)' }}>
+            <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>🎤 Voice message ready</span>
+            <div className="flex-1" />
+            <button onClick={() => { setAudioBlob(null); setRecordingTime(0); }} className="px-3 py-1.5 rounded-lg text-sm" style={{ color: 'var(--text-muted)' }}>Cancel</button>
+            <button onClick={sendVoiceMessage} disabled={uploadingFile} className="px-4 py-1.5 rounded-lg text-sm text-white" style={{ background: 'linear-gradient(135deg, #2563eb, #06b6d4)' }}>
+              {uploadingFile ? 'Sending...' : 'Send'}
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-end gap-2">
+            {/* Feature 3: File attachment */}
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              className="hidden" 
+              accept="image/*,.pdf,.doc,.docx,.txt"
+              onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
+            />
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingFile}
+              className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:scale-105 disabled:opacity-50"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', color: 'var(--text-muted)' }} 
+              title="Attach"
+            >
+              {uploadingFile ? (
+                <div className="w-4 h-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
+              ) : '📎'}
+            </button>
+            
+            {/* Feature 7: Voice message button */}
+            <button 
+              onClick={startRecording}
+              className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:scale-105"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', color: 'var(--text-muted)' }} 
+              title="Voice message"
+            >
+              🎤
+            </button>
+            
+            <div className="flex-1 flex items-end gap-2 rounded-xl px-3 py-2.5" style={{ background: 'rgba(12, 22, 48, 0.7)', border: '1px solid rgba(59,130,246,0.15)' }}>
+              <textarea 
+                value={input} 
+                onChange={(e) => handleInputChange(e.target.value)} 
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); replyTo ? sendReply() : sendMessage(); } }} 
+                placeholder={replyTo ? "Reply to message..." : "Message"} 
+                rows={1}
+                className="flex-1 bg-transparent outline-none resize-none text-sm leading-relaxed max-h-28"
+                style={{ color: 'var(--text-primary)', minHeight: '22px', fontFamily: '"Plus Jakarta Sans", sans-serif' }} />
+              <button className="text-lg leading-none pb-0.5 transition-transform hover:scale-110" style={{ color: 'var(--text-muted)' }}>😄</button>
+            </div>
+            
+            {/* Feature 10: Schedule button */}
+            <button 
+              onClick={() => setShowSchedule(true)}
+              disabled={!input.trim()}
+              className="w-10 h-10 rounded-xl flex items-center justify-center transition-all disabled:opacity-40 hover:scale-105"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', color: 'var(--text-muted)' }}
+              title="Schedule"
+            >
+              ⏰
+            </button>
+            
+            <button 
+              onClick={replyTo ? sendReply : sendMessage} 
+              disabled={!input.trim()} 
+              className="w-10 h-10 rounded-xl flex items-center justify-center transition-all disabled:opacity-40 hover:scale-105"
+              style={{ background: 'linear-gradient(135deg, #2563eb, #06b6d4)', color: 'white', boxShadow: '0 0 18px rgba(37,99,235,0.35)' }}>
+              {replyTo ? '↩️' : '➤'}
+            </button>
+          </div>
+        )}
       </div>
 
       {showInvite && (
@@ -997,6 +1390,143 @@ function ChatArea({ type, id }: { type: 'dm' | 'group'; id: string }) {
             <div className="flex gap-3">
               <button onClick={() => { setShowGroupInfo(false); setShowInvite(true); }} className="flex-1 py-3 rounded-xl font-medium text-white" style={{ background: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)' }}>Add Member</button>
               <button onClick={() => setShowGroupInfo(false)} className="flex-1 py-3 rounded-xl font-medium" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Feature 5: Search Modal */}
+      {showSearch && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
+          <div className="w-full max-w-lg rounded-3xl p-6" style={{ background: 'var(--bg-primary)', maxHeight: '80vh' }}>
+            <h3 className="text-xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>🔍 Search Messages</h3>
+            <input 
+              type="text" 
+              value={searchQuery} 
+              onChange={(e) => setSearchQuery(e.target.value)} 
+              placeholder="Search in conversation..." 
+              className="w-full px-4 py-3 rounded-xl text-sm mb-4 outline-none"
+              style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+              autoFocus
+            />
+            <div className="overflow-y-auto space-y-2" style={{ maxHeight: '50vh' }}>
+              {messageSearchResults.length === 0 ? (
+                <p className="text-center py-8" style={{ color: 'var(--text-muted)' }}>
+                  {searchQuery ? 'No messages found' : 'Type to search messages'}
+                </p>
+              ) : (
+                messageSearchResults.map(msg => {
+                  const sender = profiles.find(p => p.id === msg.sender_id)
+                  return (
+                    <div key={msg.id} className="p-3 rounded-xl" style={{ background: 'var(--bg-secondary)' }}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{sender?.username || 'Unknown'}</span>
+                        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{new Date(msg.created_at).toLocaleString()}</span>
+                      </div>
+                      <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{msg.content.slice(0, 200)}</p>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+            <button onClick={() => { setShowSearch(false); setSearchQuery(''); }} className="w-full mt-4 py-3 rounded-xl font-medium" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>Close</button>
+          </div>
+        </div>
+      )}
+
+      {/* Feature 11: Pinned Messages Modal */}
+      {showPinned && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
+          <div className="w-full max-w-lg rounded-3xl p-6" style={{ background: 'var(--bg-primary)', maxHeight: '80vh' }}>
+            <h3 className="text-xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>📌 Pinned Messages</h3>
+            <div className="overflow-y-auto space-y-2" style={{ maxHeight: '50vh' }}>
+              {pinnedMessages.length === 0 ? (
+                <p className="text-center py-8" style={{ color: 'var(--text-muted)' }}>No pinned messages</p>
+              ) : (
+                pinnedMessages.map(msg => {
+                  const sender = profiles.find(p => p.id === msg.sender_id)
+                  return (
+                    <div key={msg.id} className="p-3 rounded-xl" style={{ background: 'var(--bg-secondary)' }}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{sender?.username || 'Unknown'}</span>
+                        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{new Date(msg.created_at).toLocaleString()}</span>
+                      </div>
+                      <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{msg.content}</p>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+            <button onClick={() => setShowPinned(false)} className="w-full mt-4 py-3 rounded-xl font-medium" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>Close</button>
+          </div>
+        </div>
+      )}
+
+      {/* Feature 8: Video Call Overlay */}
+      {activeCall && (
+        <div className="fixed inset-0 z-[100] flex flex-col" style={{ background: '#0a0a0f' }}>
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <div className="w-24 h-24 rounded-full mx-auto mb-6 flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #2563eb, #06b6d4)' }}>
+                <span className="text-4xl">{activeCall.type === 'video' ? '🎥' : '📞'}</span>
+              </div>
+              <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
+                {activeCall.type === 'video' ? 'Video Call' : 'Voice Call'}
+              </h2>
+              <p className="text-lg" style={{ color: 'var(--text-secondary)' }}>{title}</p>
+              <p className="text-sm mt-4" style={{ color: 'var(--text-muted)' }}>Connecting...</p>
+              <a 
+                href={activeCall.roomUrl} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="inline-block mt-6 px-6 py-3 rounded-xl font-medium text-white"
+                style={{ background: 'linear-gradient(135deg, #2563eb, #06b6d4)' }}
+              >
+                Join Call
+              </a>
+            </div>
+          </div>
+          <div className="p-6 flex justify-center">
+            <button 
+              onClick={endCall}
+              className="w-16 h-16 rounded-full flex items-center justify-center text-2xl"
+              style={{ background: '#ef4444', color: 'white' }}
+            >
+              📞
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Feature 10: Schedule Message Modal */}
+      {showSchedule && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
+          <div className="w-full max-w-sm rounded-3xl p-6" style={{ background: 'var(--bg-primary)' }}>
+            <h3 className="text-xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>⏰ Schedule Message</h3>
+            <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>Message will be sent automatically at the scheduled time.</p>
+            <input 
+              type="datetime-local" 
+              value={scheduledTime}
+              onChange={(e) => setScheduledTime(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl text-sm mb-4 outline-none"
+              style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+            />
+            <div className="flex gap-3">
+              <button 
+                onClick={scheduleMessage}
+                disabled={!scheduledTime}
+                className="flex-1 py-3 rounded-xl font-medium text-white disabled:opacity-50"
+                style={{ background: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)' }}
+              >
+                Schedule
+              </button>
+              <button 
+                onClick={() => { setShowSchedule(false); setScheduledTime(''); }}
+                className="flex-1 py-3 rounded-xl font-medium"
+                style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>

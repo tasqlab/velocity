@@ -47,16 +47,20 @@
 - [x] GitHub Actions CI/CD
 - [x] Environment variable handling
 
+## ✅ Completed (Items 5-11)
+
+### Features (Recently Added)
+- [x] **Message search functionality** — Search within conversations
+- [x] **Threaded replies** — Reply to specific messages with context
+- [x] **Voice messages** — Record and send audio messages
+- [x] **Video calls (WebRTC)** — Audio/video calling with Jitsi integration
+- [x] **Message drafts** — Auto-save unsent messages
+- [x] **Scheduled messages** — Schedule messages for later delivery
+- [x] **Pinned messages** — Pin important messages in chats
+
 ## 🚧 In Progress / To Do
 
 ### Features
-- [ ] Message search functionality
-- [ ] Threaded replies
-- [ ] Voice messages
-- [ ] Video calls (WebRTC)
-- [ ] Message drafts
-- [ ] Scheduled messages
-- [ ] Pinned messages
 - [ ] Message editing
 - [ ] Delete messages for everyone
 
