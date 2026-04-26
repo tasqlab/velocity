@@ -405,6 +405,20 @@ function ChatList({ onSelectChat }: { onSelectChat: (type: 'dm' | 'group', id: s
   )
 }
 
+interface Reaction {
+  id: string
+  message_id: string
+  user_id: string
+  emoji: string
+}
+
+interface TypingStatus {
+  user_id: string
+  username: string
+  is_typing: boolean
+  updated_at: string
+}
+
 function ChatArea({ type, id }: { type: 'dm' | 'group'; id: string }) {
   const { profiles, groups, user } = useApp()
   const [messages, setMessages] = useState<DirectMessage[] | GroupMessage[]>([])
@@ -418,6 +432,23 @@ function ChatArea({ type, id }: { type: 'dm' | 'group'; id: string }) {
   const [showGroupInfo, setShowGroupInfo] = useState(false)
   const [groupMembers, setGroupMembers] = useState<Profile[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  
+  // Feature 1: Typing indicators
+  const [typingUsers, setTypingUsers] = useState<TypingStatus[]>([])
+  const [isTyping, setIsTyping] = useState(false)
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  
+  // Feature 2: Message reactions
+  const [reactions, setReactions] = useState<Reaction[]>([])
+  const [showReactionPicker, setShowReactionPicker] = useState<string | null>(null)
+  const reactionEmojis = ['❤️', '👍', '🔥', '😂', '😮', '🎉', '👏', '🤔']
+  
+  // Feature 3: File attachments
+  const [uploadingFile, setUploadingFile] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  
+  // Feature 4: Push notifications
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false)
 
   useEffect(() => {
     if (type === 'dm') {
@@ -437,6 +468,180 @@ function ChatArea({ type, id }: { type: 'dm' | 'group'; id: string }) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  // Feature 1: Typing indicators - Listen for typing status
+  useEffect(() => {
+    if (!user) return
+    
+    const channel = supabase.channel(`typing:${type}:${id}`)
+    channel.on('broadcast', { event: 'typing' }, (payload) => {
+      const typing = payload.payload as TypingStatus
+      if (typing.user_id !== user.id) {
+        setTypingUsers(prev => {
+          const filtered = prev.filter(u => u.user_id !== typing.user_id)
+          if (typing.is_typing) {
+            return [...filtered, typing]
+          }
+          return filtered
+        })
+      }
+    }).subscribe()
+    
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [type, id, user])
+
+  // Feature 2: Fetch reactions for all messages
+  useEffect(() => {
+    const fetchReactions = async () => {
+      const messageIds = messages.map(m => m.id)
+      if (messageIds.length === 0) return
+      
+      const { data } = await supabase.from('reactions').select('*').in('message_id', messageIds)
+      if (data) setReactions(data as Reaction[])
+    }
+    fetchReactions()
+  }, [messages])
+
+  // Feature 4: Request notification permission on mount
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      setNotificationsEnabled(true)
+    }
+  }, [])
+
+  // Show notification for new messages
+  useEffect(() => {
+    if (!notificationsEnabled || messages.length === 0) return
+    
+    const lastMessage = messages[messages.length - 1]
+    if (lastMessage.sender_id === user?.id) return
+    
+    const sender = profiles.find(p => p.id === lastMessage.sender_id)
+    if (sender && document.hidden) {
+      new Notification(`${sender.username} in ${type === 'dm' ? profile?.username : group?.name}`, {
+        body: lastMessage.content.slice(0, 100),
+        icon: '/vite.svg',
+        badge: '/vite.svg',
+        tag: lastMessage.id
+      })
+    }
+  }, [messages, notificationsEnabled, user?.id, profiles, type, profile?.username, group?.name])
+
+  const requestNotificationPermission = async () => {
+    if (!('Notification' in window)) return
+    const permission = await Notification.requestPermission()
+    setNotificationsEnabled(permission === 'granted')
+  }
+
+  // Feature 1: Send typing status
+  const sendTypingStatus = (typing: boolean) => {
+    if (!user) return
+    
+    const channel = supabase.channel(`typing:${type}:${id}`)
+    channel.send({
+      type: 'broadcast',
+      event: 'typing',
+      payload: {
+        user_id: user.id,
+        username: user.user_metadata?.username || 'Unknown',
+        is_typing: typing,
+        updated_at: new Date().toISOString()
+      }
+    })
+  }
+
+  const handleInputChange = (value: string) => {
+    setInput(value)
+    
+    if (!isTyping && value.length > 0) {
+      setIsTyping(true)
+      sendTypingStatus(true)
+    }
+    
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current)
+    }
+    
+    typingTimeoutRef.current = setTimeout(() => {
+      setIsTyping(false)
+      sendTypingStatus(false)
+    }, 2000)
+    
+    if (value.length === 0) {
+      setIsTyping(false)
+      sendTypingStatus(false)
+    }
+  }
+
+  // Feature 2: Add/remove reactions
+  const addReaction = async (messageId: string, emoji: string) => {
+    if (!user) return
+    
+    // Check if already reacted
+    const existing = reactions.find(r => r.message_id === messageId && r.user_id === user.id && r.emoji === emoji)
+    if (existing) {
+      // Remove reaction
+      await supabase.from('reactions').delete().eq('id', existing.id)
+      setReactions(prev => prev.filter(r => r.id !== existing.id))
+    } else {
+      // Add reaction
+      const { data } = await supabase.from('reactions').insert({
+        message_id: messageId,
+        user_id: user.id,
+        emoji
+      }).select()
+      if (data) setReactions(prev => [...prev, data[0] as Reaction])
+    }
+    setShowReactionPicker(null)
+  }
+
+  // Feature 3: Handle file upload
+  const handleFileUpload = async (file: File) => {
+    if (!user || !file) return
+    
+    setUploadingFile(true)
+    try {
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}.${fileExt}`
+      const filePath = `${user.id}/${fileName}`
+      
+      // Upload to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('chat-attachments')
+        .upload(filePath, file)
+      
+      if (uploadError) throw uploadError
+      
+      // Get public URL
+      const { data: urlData } = supabase.storage.from('chat-attachments').getPublicUrl(filePath)
+      
+      // Send message with file
+      const isImage = file.type.startsWith('image/')
+      const content = isImage 
+        ? `![${file.name}](${urlData.publicUrl})`
+        : `[📎 ${file.name}](${urlData.publicUrl})`
+      
+      if (type === 'dm') {
+        await supabase.from('direct_messages').insert({
+          sender_id: user.id,
+          receiver_id: id,
+          content
+        })
+      } else {
+        await supabase.from('group_messages').insert({
+          group_id: id,
+          sender_id: user.id,
+          content
+        })
+      }
+    } catch (err) {
+      console.error('Upload failed:', err)
+    } finally {
+      setUploadingFile(false)
+    }
+  }
 
   const sendMessage = async () => {
     if (!input.trim() || !user) return
@@ -540,7 +745,15 @@ function ChatArea({ type, id }: { type: 'dm' | 'group'; id: string }) {
           <div className="flex-1">
             <h2 className="font-bold text-[15px] tracking-tight" style={{ color: 'var(--text-primary)' }}>{title}</h2>
             <p className="text-[11px] mt-0.5 flex items-center gap-1.5" style={{ color: '#60a5fa' }}>
-              {type === 'dm' ? (
+              {/* Feature 1: Typing indicator */}
+              {typingUsers.length > 0 ? (
+                <span className="flex items-center gap-1 animate-pulse">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                  {typingUsers.length === 1 
+                    ? `${typingUsers[0].username} is typing...`
+                    : `${typingUsers.length} people are typing...`}
+                </span>
+              ) : type === 'dm' ? (
                 <>
                   {profile?.is_online && <span className="w-[5px] h-[5px] rounded-full bg-green-500 inline-block" style={{ boxShadow: '0 0 6px #22c55e' }} />}
                   {profile?.is_online ? 'Online' : 'Offline'}
@@ -590,19 +803,88 @@ function ChatArea({ type, id }: { type: 'dm' | 'group'; id: string }) {
               
               <div className={`max-w-[70%] flex flex-col gap-0.5 ${isMe ? 'items-end' : 'items-start'}`}>
                 {!isMe && showAvatar && sender && <span className="text-[11px] font-semibold ml-1" style={{ color: 'rgba(191,219,254,0.7)' }}>{sender.username}</span>}
-                <div className={`relative px-4 py-2.5 text-[13.5px] leading-relaxed ${isMe ? 'rounded-2xl rounded-br-md' : 'rounded-2xl rounded-bl-md'}`}
-                  style={{ 
-                    background: isMe ? 'rgba(37, 99, 235, 0.82)' : 'rgba(12, 22, 50, 0.6)',
-                    border: isMe ? '1px solid rgba(59,130,246,0.3)' : '1px solid rgba(59,130,246,0.1)',
-                    color: isMe ? '#dbeafe' : 'var(--text-primary)',
-                    boxShadow: isMe ? '0 2px 16px rgba(37,99,235,0.25)' : '0 2px 12px rgba(0,0,0,0.3)',
-                    backdropFilter: 'blur(16px)'
-                  }}>
-                  {isMe && <div className="absolute inset-0 pointer-events-none rounded-2xl rounded-br-md" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 50%)' }} />}
-                  <div className="relative z-10">
-                    <MessageContent content={msg.content} />
+                <div className="relative group/message">
+                  <div className={`relative px-4 py-2.5 text-[13.5px] leading-relaxed ${isMe ? 'rounded-2xl rounded-br-md' : 'rounded-2xl rounded-bl-md'}`}
+                    style={{ 
+                      background: isMe ? 'rgba(37, 99, 235, 0.82)' : 'rgba(12, 22, 50, 0.6)',
+                      border: isMe ? '1px solid rgba(59,130,246,0.3)' : '1px solid rgba(59,130,246,0.1)',
+                      color: isMe ? '#dbeafe' : 'var(--text-primary)',
+                      boxShadow: isMe ? '0 2px 16px rgba(37,99,235,0.25)' : '0 2px 12px rgba(0,0,0,0.3)',
+                      backdropFilter: 'blur(16px)'
+                    }}>
+                    {isMe && <div className="absolute inset-0 pointer-events-none rounded-2xl rounded-br-md" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 50%)' }} />}
+                    <div className="relative z-10">
+                      <MessageContent content={msg.content} />
+                    </div>
                   </div>
+                  
+                  {/* Feature 2: Reaction button - appears on hover */}
+                  <button 
+                    onClick={() => setShowReactionPicker(showReactionPicker === msg.id ? null : msg.id)}
+                    className="absolute -top-2 opacity-0 group-hover/message:opacity-100 transition-opacity z-20 w-6 h-6 rounded-full flex items-center justify-center text-xs"
+                    style={{ 
+                      background: 'rgba(12,22,48,0.9)', 
+                      border: '1px solid rgba(59,130,246,0.2)',
+                      color: 'rgba(160,190,240,0.6)',
+                      [isMe ? 'left' : 'right']: '-8px'
+                    }}
+                  >
+                    😊
+                  </button>
+                  
+                  {/* Feature 2: Reaction picker */}
+                  {showReactionPicker === msg.id && (
+                    <div className={`absolute -top-12 z-30 flex items-center gap-1 p-1.5 rounded-xl shadow-xl`}
+                      style={{ 
+                        background: 'rgba(12,22,48,0.95)', 
+                        border: '1px solid rgba(59,130,246,0.2)',
+                        [isMe ? 'right' : 'left']: '0'
+                      }}>
+                      {reactionEmojis.map(emoji => (
+                        <button
+                          key={emoji}
+                          onClick={() => addReaction(msg.id, emoji)}
+                          className="w-7 h-7 rounded-lg hover:bg-white/10 transition-all text-base flex items-center justify-center"
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
+                
+                {/* Feature 2: Display reactions */}
+                {(() => {
+                  const msgReactions = reactions.filter(r => r.message_id === msg.id)
+                  if (msgReactions.length === 0) return null
+                  
+                  const grouped = msgReactions.reduce((acc, r) => {
+                    acc[r.emoji] = (acc[r.emoji] || 0) + 1
+                    return acc
+                  }, {} as Record<string, number>)
+                  
+                  return (
+                    <div className={`flex gap-1 mt-1 ${isMe ? 'flex-row-reverse' : ''}`}>
+                      {Object.entries(grouped).map(([emoji, count]) => (
+                        <button
+                          key={emoji}
+                          onClick={() => addReaction(msg.id, emoji)}
+                          className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs transition-all hover:scale-105"
+                          style={{ 
+                            background: reactions.find(r => r.message_id === msg.id && r.user_id === user?.id && r.emoji === emoji)
+                              ? 'rgba(37,99,235,0.4)' 
+                              : 'rgba(12,22,48,0.6)',
+                            border: '1px solid rgba(59,130,246,0.15)'
+                          }}
+                        >
+                          <span>{emoji}</span>
+                          <span style={{ color: 'rgba(160,190,240,0.8)' }}>{count}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )
+                })()}
+                
                 <span className="text-[9px] font-mono px-1" style={{ color: 'rgba(160,190,240,0.35)' }}>{time} {isMe && '✓✓'}</span>
               </div>
             </div>
@@ -611,13 +893,31 @@ function ChatArea({ type, id }: { type: 'dm' | 'group'; id: string }) {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input area - exact match to example */}
+      {/* Input area with file upload */}
       <div className="relative z-10 p-3" style={{ borderTop: '1px solid var(--border)' }}>
         <div className="flex items-end gap-2">
-          <button className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:scale-105" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', color: 'var(--text-muted)' }} title="Attach">📎</button>
+          {/* Feature 3: File attachment */}
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            className="hidden" 
+            accept="image/*,.pdf,.doc,.docx,.txt"
+            onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
+          />
+          <button 
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadingFile}
+            className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:scale-105 disabled:opacity-50"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', color: 'var(--text-muted)' }} 
+            title="Attach"
+          >
+            {uploadingFile ? (
+              <div className="w-4 h-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
+            ) : '📎'}
+          </button>
           
           <div className="flex-1 flex items-end gap-2 rounded-xl px-3 py-2.5" style={{ background: 'rgba(12, 22, 48, 0.7)', border: '1px solid rgba(59,130,246,0.15)' }}>
-            <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} placeholder="Message" rows={1}
+            <textarea value={input} onChange={(e) => handleInputChange(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} placeholder="Message" rows={1}
               className="flex-1 bg-transparent outline-none resize-none text-sm leading-relaxed max-h-28"
               style={{ color: 'var(--text-primary)', minHeight: '22px', fontFamily: '"Plus Jakarta Sans", sans-serif' }} />
             <button className="text-lg leading-none pb-0.5 transition-transform hover:scale-110" style={{ color: 'var(--text-muted)' }}>😄</button>
@@ -825,9 +1125,14 @@ function SettingsPage() {
   const [username, setUsername] = useState('')
   const [description, setDescription] = useState('')
   const [phone, setPhone] = useState('')
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false)
 
   useEffect(() => {
     if (user) supabase.from('profiles').select('*').eq('id', user.id).single().then(({ data }) => { if (data) { setUsername(data.username || ''); setDescription(data.description || ''); setPhone(data.phone || '') } })
+    // Check notification permission
+    if ('Notification' in window) {
+      setNotificationsEnabled(Notification.permission === 'granted')
+    }
   }, [user])
 
   const saveProfile = async () => { if (!user) return; await supabase.from('profiles').update({ username, description, phone }).eq('id', user.id) }
@@ -863,6 +1168,38 @@ function SettingsPage() {
             </button>
           </div>
         </div>
+        <div>
+          <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>NOTIFICATIONS</h2>
+          <div className="flex items-center justify-between p-4 rounded-xl" style={{ background: 'var(--bg-secondary)' }}>
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🔔</span>
+              <span className="font-medium" style={{ color: 'var(--text-primary)' }}>Push Notifications</span>
+            </div>
+            <button 
+              onClick={() => {
+                if (!notificationsEnabled) {
+                  if ('Notification' in window) {
+                    Notification.requestPermission().then(permission => {
+                      if (permission === 'granted') {
+                        setNotificationsEnabled(true)
+                        new Notification('Velocity', { body: 'Notifications enabled!', icon: '/vite.svg' })
+                      }
+                    })
+                  }
+                }
+              }}
+              disabled={notificationsEnabled}
+              className="w-12 h-6 rounded-full transition-colors relative disabled:opacity-60"
+              style={{ background: notificationsEnabled ? 'linear-gradient(135deg, #22c55e 0%, #10b981 100%)' : 'var(--border-strong)' }}
+            >
+              <div className="absolute top-1 w-4 h-4 rounded-full bg-white transition-transform" style={{ left: notificationsEnabled ? '28px' : '4px' }} />
+            </button>
+          </div>
+          <p className="text-xs mt-2 px-1" style={{ color: 'var(--text-muted)' }}>
+            {notificationsEnabled ? 'Notifications are enabled. You\'ll receive alerts for new messages when the app is in the background.' : 'Enable to receive alerts for new messages.'}
+          </p>
+        </div>
+
         <div>
           <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>ABOUT</h2>
           <div className="p-4 rounded-xl" style={{ background: 'var(--bg-secondary)' }}>

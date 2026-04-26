@@ -57,9 +57,9 @@ export default function Login() {
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-[#0a0a0f] relative overflow-hidden p-4">
       {/* Background effects matching Landing */}
-      <div className="absolute inset-0 bg-gradient-to-br from-violet-950/20 via-[#0a0a0f] to-blue-950/20" />
-      <div className="absolute top-20 left-[10%] w-64 h-64 rounded-full bg-violet-600/10 blur-3xl animate-float-slow" />
-      <div className="absolute bottom-20 right-[10%] w-80 h-80 rounded-full bg-blue-600/10 blur-3xl animate-float-slow" />
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-950/20 via-[#0a0a0f] to-cyan-950/20" />
+      <div className="absolute top-20 left-[10%] w-64 h-64 rounded-full bg-blue-600/10 blur-3xl animate-float-slow" />
+      <div className="absolute bottom-20 right-[10%] w-80 h-80 rounded-full bg-cyan-600/10 blur-3xl animate-float-slow" />
 
       {/* Back to home link */}
       <Link 
@@ -76,8 +76,10 @@ export default function Login() {
       <div className="relative z-10 w-full max-w-md animate-fade-in-up">
         {/* Logo */}
         <div className="flex justify-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-blue-600 flex items-center justify-center shadow-2xl shadow-violet-500/25">
-            <span className="text-3xl font-bold">V</span>
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-2xl" style={{ background: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)', boxShadow: '0 0 30px rgba(37,99,235,0.4)' }}>
+            <svg viewBox="0 0 24 24" fill="none" className="w-8 h-8">
+              <path d="M13 3L4 14h8l-1 7 9-11h-8l1-10z" fill="white" stroke="white" strokeWidth="1.2" strokeLinejoin="round"/>
+            </svg>
           </div>
         </div>
 
@@ -100,7 +102,7 @@ export default function Login() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
-                  className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-slate-500 outline-none focus:border-violet-500/50 transition-colors"
+                  className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-slate-500 outline-none focus:border-blue-500/50 transition-colors"
                   required
                 />
               </div>
@@ -118,7 +120,7 @@ export default function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-12 pr-12 py-3 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-slate-500 outline-none focus:border-violet-500/50 transition-colors"
+                  className="w-full pl-12 pr-12 py-3 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-slate-500 outline-none focus:border-blue-500/50 transition-colors"
                   required
                 />
                 <button
@@ -142,7 +144,7 @@ export default function Login() {
 
             {/* Forgot password link */}
             <div className="flex justify-end">
-              <Link to="/forgot-password" className="text-sm text-violet-400 hover:text-violet-300 transition-colors">
+              <Link to="/forgot-password" className="text-sm text-blue-400 hover:text-cyan-300 transition-colors">
                 Forgot password?
               </Link>
             </div>
@@ -158,7 +160,8 @@ export default function Login() {
             <button 
               type="submit" 
               disabled={loading}
-              className="w-full py-3.5 bg-gradient-to-r from-violet-600 to-blue-600 text-white rounded-2xl font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-violet-500/25 hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
+              className="w-full py-3.5 text-white rounded-2xl font-semibold transition-all duration-300 hover:shadow-lg hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
+              style={{ background: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)', boxShadow: '0 0 20px rgba(37,99,235,0.3)' }}
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -178,7 +181,7 @@ export default function Login() {
               <div className="w-full border-t border-white/10" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-[#13131f] text-slate-500 rounded-full">Or continue with</span>
+              <span className="px-4 bg-[#0a0a0f] text-slate-500 rounded-full">Or continue with</span>
             </div>
           </div>
 
@@ -199,7 +202,7 @@ export default function Login() {
           {/* Sign up link */}
           <p className="mt-6 text-center text-sm text-slate-400">
             Don't have an account?{' '}
-            <Link to="/signup" className="text-violet-400 hover:text-violet-300 font-medium transition-colors">
+            <Link to="/signup" className="text-blue-400 hover:text-cyan-300 font-medium transition-colors">
               Create one
             </Link>
           </p>
