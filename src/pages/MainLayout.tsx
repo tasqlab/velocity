@@ -2,6 +2,7 @@ import { useState, useEffect, createContext, useContext, useRef } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { deriveSharedKey, deriveGroupKey, encryptMessage, decryptMessage, formatEncryptedPayload, parseEncryptedPayload } from '../lib/crypto'
 
 // Markdown parser for chat messages
 function parseMarkdown(text: string): string {
@@ -478,20 +479,75 @@ function ChatArea({ type, id }: { type: 'dm' | 'group'; id: string }) {
   // Feature 11: Pinned messages
   const [pinnedMessages, setPinnedMessages] = useState<(DirectMessage | GroupMessage)[]>([])
   const [showPinned, setShowPinned] = useState(false)
+  
+  // Encryption
+  const [encryptionKey, setEncryptionKey] = useState<CryptoKey | null>(null)
+  const [isEncrypted, setIsEncrypted] = useState(true)
+
+  // Initialize encryption key
+  useEffect(() => {
+    const initEncryption = async () => {
+      if (!user) return
+      try {
+        const key = type === 'dm' 
+          ? await deriveSharedKey(user.id, id)
+          : await deriveGroupKey(id)
+        setEncryptionKey(key)
+      } catch (err) {
+        console.error('Failed to initialize encryption:', err)
+        setIsEncrypted(false)
+      }
+    }
+    initEncryption()
+  }, [type, id, user])
 
   useEffect(() => {
-    if (type === 'dm') {
-      supabase.from('profiles').select('*').eq('id', id).single().then(({ data }) => setProfile(data as Profile))
-      supabase.from('direct_messages').select('*').or(`and(sender_id.eq.${user?.id},receiver_id.eq.${id}),and(sender_id.eq.${id},receiver_id.eq.${user?.id})`).order('created_at').then(({ data }) => setMessages(data || []))
-    } else {
-      supabase.from('group_chats').select('*').eq('id', id).single().then(({ data }) => setGroup(data as GroupChat))
-      supabase.from('group_messages').select('*').eq('group_id', id).order('created_at').then(({ data }) => setMessages(data || []))
-      // Fetch group members
-      supabase.from('group_members').select('user_id, profiles(*)').eq('group_id', id).then(({ data }) => {
-        if (data) setGroupMembers(data.map(m => (m.profiles as unknown) as Profile).filter(Boolean))
-      })
+    const loadMessages = async () => {
+      if (!encryptionKey) return
+      
+      if (type === 'dm') {
+        supabase.from('profiles').select('*').eq('id', id).single().then(({ data }) => setProfile(data as Profile))
+        const { data } = await supabase.from('direct_messages').select('*').or(`and(sender_id.eq.${user?.id},receiver_id.eq.${id}),and(sender_id.eq.${id},receiver_id.eq.${user?.id})`).order('created_at')
+        
+        // Decrypt messages
+        if (data) {
+          const decrypted = await Promise.all(data.map(async (msg) => {
+            const payload = parseEncryptedPayload(msg.content)
+            if (payload && encryptionKey) {
+              const decrypted = await decryptMessage(payload, encryptionKey)
+              return { ...msg, content: decrypted || '[Decryption failed]' }
+            }
+            // Legacy: plaintext message
+            return msg
+          }))
+          setMessages(decrypted)
+        }
+      } else {
+        supabase.from('group_chats').select('*').eq('id', id).single().then(({ data }) => setGroup(data as GroupChat))
+        const { data } = await supabase.from('group_messages').select('*').eq('group_id', id).order('created_at')
+        
+        // Decrypt messages
+        if (data) {
+          const decrypted = await Promise.all(data.map(async (msg) => {
+            const payload = parseEncryptedPayload(msg.content)
+            if (payload && encryptionKey) {
+              const decrypted = await decryptMessage(payload, encryptionKey)
+              return { ...msg, content: decrypted || '[Decryption failed]' }
+            }
+            // Legacy: plaintext message
+            return msg
+          }))
+          setMessages(decrypted)
+        }
+        
+        // Fetch group members
+        supabase.from('group_members').select('user_id, profiles(*)').eq('group_id', id).then(({ data }) => {
+          if (data) setGroupMembers(data.map(m => (m.profiles as unknown) as Profile).filter(Boolean))
+        })
+      }
     }
-  }, [type, id, user])
+    loadMessages()
+  }, [type, id, user, encryptionKey])
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -908,10 +964,21 @@ function ChatArea({ type, id }: { type: 'dm' | 'group'; id: string }) {
   }
 
   const sendMessage = async () => {
-    if (!input.trim() || !user) return
-    const content = input.trim()
+    if (!input.trim() || !user || !encryptionKey) return
+    const plaintext = input.trim()
     const tempId = `temp-${Date.now()}`
     const now = new Date().toISOString()
+    
+    // Encrypt message
+    let encryptedContent: string
+    try {
+      const encrypted = await encryptMessage(plaintext, encryptionKey)
+      encryptedContent = formatEncryptedPayload(encrypted)
+    } catch (err) {
+      console.error('Encryption failed:', err)
+      // Fallback to plaintext if encryption fails
+      encryptedContent = plaintext
+    }
     
     // Optimistically add message to UI immediately
     if (type === 'dm') {
@@ -919,33 +986,35 @@ function ChatArea({ type, id }: { type: 'dm' | 'group'; id: string }) {
         id: tempId,
         sender_id: user.id,
         receiver_id: id,
-        content,
+        content: plaintext, // Show plaintext locally
         created_at: now
       }
       setMessages(prev => [...(prev as DirectMessage[]), optimisticMessage])
       setInput('')
       
-      // Send to database
-      const { data } = await supabase.from('direct_messages').insert({ sender_id: user.id, receiver_id: id, content }).select()
+      // Send encrypted to database
+      const { data } = await supabase.from('direct_messages').insert({ sender_id: user.id, receiver_id: id, content: encryptedContent }).select()
       if (data && data[0]) {
-        // Replace temp message with real one from DB
-        setMessages(prev => (prev as DirectMessage[]).map(m => m.id === tempId ? data[0] as DirectMessage : m))
+        // Replace temp message with real one from DB (decrypted)
+        const decrypted = await decryptMessage(parseEncryptedPayload(data[0].content), encryptionKey)
+        setMessages(prev => (prev as DirectMessage[]).map(m => m.id === tempId ? { ...data[0] as DirectMessage, content: decrypted || data[0].content } : m))
       }
     } else {
       const optimisticMessage: GroupMessage = {
         id: tempId,
         sender_id: user.id,
         group_id: id,
-        content,
+        content: plaintext, // Show plaintext locally
         created_at: now
       }
       setMessages(prev => [...(prev as GroupMessage[]), optimisticMessage])
       setInput('')
       
-      // Send to database
-      const { data } = await supabase.from('group_messages').insert({ group_id: id, sender_id: user.id, content }).select()
+      // Send encrypted to database
+      const { data } = await supabase.from('group_messages').insert({ group_id: id, sender_id: user.id, content: encryptedContent }).select()
       if (data && data[0]) {
-        setMessages(prev => (prev as GroupMessage[]).map(m => m.id === tempId ? data[0] as GroupMessage : m))
+        const decrypted = await decryptMessage(parseEncryptedPayload(data[0].content), encryptionKey)
+        setMessages(prev => (prev as GroupMessage[]).map(m => m.id === tempId ? { ...data[0] as GroupMessage, content: decrypted || data[0].content } : m))
       }
     }
   }
@@ -1080,9 +1149,11 @@ function ChatArea({ type, id }: { type: 'dm' | 'group'; id: string }) {
       </div>
 
       {/* Encryption Notice */}
-      <div className="relative z-10 flex items-center justify-center gap-1.5 py-1.5" style={{ background: 'rgba(37,99,235,0.06)', borderBottom: '1px solid rgba(37,99,235,0.08)' }}>
-        <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>🔒</span>
-        <span className="text-[10px] tracking-wide" style={{ color: 'var(--text-muted)' }}>End-to-end encrypted · Velocity Shield™</span>
+      <div className="relative z-10 flex items-center justify-center gap-1.5 py-1.5" style={{ background: isEncrypted ? 'rgba(37,99,235,0.06)' : 'rgba(239,68,68,0.06)', borderBottom: `1px solid ${isEncrypted ? 'rgba(37,99,235,0.08)' : 'rgba(239,68,68,0.08)'}` }}>
+        <span className="text-[10px]">{isEncrypted ? '🔒' : '⚠️'}</span>
+        <span className="text-[10px] tracking-wide" style={{ color: isEncrypted ? 'var(--text-muted)' : '#ef4444' }}>
+          {isEncrypted ? '🔐 AES-256-GCM Encrypted · Velocity Shield™' : 'Encryption unavailable'}
+        </span>
       </div>
 
       {/* Messages */}

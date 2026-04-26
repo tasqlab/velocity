@@ -9,7 +9,7 @@
 - [x] Landing page with glass-morphism design
 - [x] Authentication system (Login/Signup)
 - [x] Real-time messaging with Supabase Realtime
-- [x] End-to-end encryption (Velocity Shield™)
+- [x] End-to-end encryption (Velocity Shield™) — **AES-256-GCM with PBKDF2 key derivation**
 - [x] Group chat and DM support
 - [x] User profiles with avatars
 - [x] Responsive layout for mobile/desktop
