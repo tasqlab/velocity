@@ -35,10 +35,10 @@ export default function ForgotPassword() {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-[#0a0a0f] relative overflow-hidden p-4">
-      {/* Background effects matching Landing */}
-      <div className="absolute inset-0 bg-gradient-to-br from-violet-950/20 via-[#0a0a0f] to-blue-950/20" />
-      <div className="absolute top-20 left-[10%] w-64 h-64 rounded-full bg-violet-600/10 blur-3xl animate-float-slow" />
-      <div className="absolute bottom-20 right-[10%] w-80 h-80 rounded-full bg-blue-600/10 blur-3xl animate-float-slow" />
+      {/* Background effects - blue/cyan theme */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-950/20 via-[#0a0a0f] to-cyan-950/20" />
+      <div className="absolute top-20 left-[10%] w-64 h-64 rounded-full bg-blue-600/10 blur-3xl animate-float-slow" />
+      <div className="absolute bottom-20 right-[10%] w-80 h-80 rounded-full bg-cyan-600/10 blur-3xl animate-float-slow" />
 
       {/* Back to home link */}
       <Link 
@@ -55,8 +55,10 @@ export default function ForgotPassword() {
       <div className="relative z-10 w-full max-w-md animate-fade-in-up">
         {/* Logo */}
         <div className="flex justify-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-blue-600 flex items-center justify-center shadow-2xl shadow-violet-500/25">
-            <span className="text-3xl font-bold">V</span>
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-2xl" style={{ background: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)', boxShadow: '0 0 30px rgba(37,99,235,0.4)' }}>
+            <svg viewBox="0 0 24 24" fill="none" className="w-8 h-8">
+              <path d="M13 3L4 14h8l-1 7 9-11h-8l1-10z" fill="white" stroke="white" strokeWidth="1.2" strokeLinejoin="round"/>
+            </svg>
           </div>
         </div>
 
@@ -115,7 +117,8 @@ export default function ForgotPassword() {
               <button 
                 type="submit" 
                 disabled={loading}
-                className="w-full py-3.5 bg-gradient-to-r from-violet-600 to-blue-600 text-white rounded-2xl font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-violet-500/25 hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
+                className="w-full py-3.5 text-white rounded-2xl font-semibold transition-all duration-300 hover:shadow-lg hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
+                style={{ background: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)', boxShadow: '0 0 20px rgba(37,99,235,0.3)' }}
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
@@ -134,7 +137,7 @@ export default function ForgotPassword() {
           {!success && (
             <p className="mt-6 text-center text-sm text-slate-400">
               Remember your password?{' '}
-              <Link to="/login" className="text-violet-400 hover:text-violet-300 font-medium transition-colors">
+              <Link to="/login" className="font-medium transition-colors hover:opacity-80" style={{ color: '#60a5fa' }}>
                 Sign in
               </Link>
             </p>

@@ -16,9 +16,12 @@ A modern, real-time messaging platform built with cutting-edge web technologies.
 - **🔐 End-to-End Encryption** — Velocity Shield™ secures all your conversations
 - **⚡ Real-time Messaging** — Instant message delivery powered by Supabase Realtime
 - **👥 Group & DM Support** — Create groups or chat privately with friends
-- **🎨 Glass-morphism Design** — Modern, translucent UI with gradient accents
+- **🔑 Full Auth System** — Email/password, Google OAuth, password reset flows
+- **🎨 Glass-morphism Design** — Modern, translucent UI with blue/cyan gradient accents
 - **📱 Responsive Layout** — Works seamlessly on desktop and mobile
 - **🌙 Dark Theme** — Sleek dark interface optimized for low-light environments
+- **📎 File Attachments** — Share files directly in conversations
+- **😀 Message Reactions** — React with emojis to messages
 
 ---
 
