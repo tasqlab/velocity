@@ -166,42 +166,60 @@ function HomePage() {
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
-      <div className="p-6" style={{ borderBottom: '1px solid var(--border)' }}>
-        <h1 className="text-2xl font-bold" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Velocity</h1>
+      <div className="px-8 py-6" style={{ borderBottom: '1px solid var(--border)' }}>
+        <h1 className="text-2xl font-bold tracking-tight" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Velocity</h1>
+        <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>{dateStr} · {timeStr}</p>
       </div>
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="grid grid-cols-2 gap-4">
-          {widgets.map((w, i) => (
-            <div 
-              key={w.id} 
-              className="p-5 rounded-2xl transition-all duration-300 hover:scale-[1.02] cursor-pointer"
-              style={{ 
-                background: 'var(--bg-secondary)',
-                boxShadow: `0 4px 20px ${w.color}20`
+      <div className="flex-1 overflow-y-auto p-8 space-y-8">
+        <div className="flex flex-col gap-5">
+          {widgets.map((w) => (
+            <div
+              key={w.id}
+              className="relative overflow-hidden rounded-2xl transition-all duration-300 hover:scale-[1.01] cursor-pointer group"
+              style={{
+                background: 'rgba(8, 15, 32, 0.6)',
+                backdropFilter: 'blur(24px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+                border: '1px solid rgba(59, 130, 246, 0.12)',
+                minHeight: '140px',
+                padding: '28px'
               }}
             >
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-2xl">{w.icon}</span>
-                <span className="text-xs font-medium px-2 py-1 rounded-full" style={{ background: w.color, color: 'white' }}>{w.title}</span>
+              <div
+                className="absolute inset-0 pointer-events-none rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                style={{ background: `linear-gradient(160deg, ${w.color}08 0%, transparent 55%)` }}
+              />
+              <div className="relative z-10 flex flex-col h-full justify-between gap-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl">{w.icon}</span>
+                    <span className="text-xs font-semibold tracking-wider uppercase px-3 py-1 rounded-full" style={{ background: `${w.color}18`, color: w.color, border: `1px solid ${w.color}30` }}>
+                      {w.title}
+                    </span>
+                  </div>
+                  <div className="w-2 h-2 rounded-full" style={{ background: w.color, boxShadow: `0 0 8px ${w.color}` }} />
+                </div>
+                <div>
+                  <p className="text-5xl font-bold tracking-tight" style={{ color: w.color }}>{w.value}</p>
+                  <p className="text-sm mt-2 font-medium" style={{ color: 'var(--text-muted)' }}>{w.sub}</p>
+                </div>
               </div>
-              <p className="text-3xl font-bold" style={{ color: w.color }}>{w.value}</p>
-              <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>{w.sub}</p>
             </div>
           ))}
         </div>
         
-        {/* Online Users Row */}
-        <div className="mt-6">
-          <h2 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+        {/* Online Users */}
+        <div className="rounded-2xl p-6" style={{ background: 'rgba(8, 15, 32, 0.4)', border: '1px solid rgba(59, 130, 246, 0.08)' }}>
+          <h2 className="text-sm font-semibold mb-5 flex items-center gap-2 tracking-wider uppercase" style={{ color: 'var(--text-secondary)' }}>
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" /> Online Now ({onlineUsers.length})
           </h2>
-          <div className="flex gap-3 overflow-x-auto pb-2">
-            {onlineUsers.length > 0 ? onlineUsers.map((p, i) => (
-              <div key={p.id} className="flex flex-col items-center gap-2 min-w-fit">
-                <div className="w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center" style={{ background: 'var(--bg-tertiary)' }}>
-                  {p.avatar_url ? <img src={p.avatar_url} alt={p.username} className="w-full h-full object-cover" /> : <span className="font-bold" style={{ color: 'var(--text-primary)' }}>{p.username[0].toUpperCase()}</span>}
+          <div className="flex gap-4 overflow-x-auto pb-2">
+            {onlineUsers.length > 0 ? onlineUsers.map((p) => (
+              <div key={p.id} className="flex flex-col items-center gap-2 min-w-fit transition-transform hover:scale-105">
+                <div className="w-12 h-12 rounded-xl overflow-hidden flex items-center justify-center" style={{ background: 'var(--bg-tertiary)', border: '1px solid rgba(59, 130, 246, 0.15)' }}>
+                  {p.avatar_url ? <img src={p.avatar_url} alt={p.username} className="w-full h-full object-cover" /> : <span className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{p.username[0].toUpperCase()}</span>}
                 </div>
-                <span className="text-xs truncate max-w-14" style={{ color: 'var(--text-primary)' }}>{p.username}</span>
+                <span className="text-xs truncate max-w-16" style={{ color: 'var(--text-primary)' }}>{p.username}</span>
               </div>
             )) : (
               <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No one online</p>
@@ -210,25 +228,25 @@ function HomePage() {
         </div>
 
         {/* Git Commits */}
-        <div className="mt-6">
-          <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>What's New</h2>
-          <div className="space-y-2">
+        <div className="rounded-2xl p-6" style={{ background: 'rgba(8, 15, 32, 0.4)', border: '1px solid rgba(59, 130, 246, 0.08)' }}>
+          <h2 className="text-sm font-semibold mb-5 tracking-wider uppercase" style={{ color: 'var(--text-secondary)' }}>What's New</h2>
+          <div className="space-y-3">
             {gitCommits.slice(0, 5).map((commit) => (
-              <a 
-                key={commit.sha} 
+              <a
+                key={commit.sha}
                 href={commit.html_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-3 p-3 rounded-xl transition-all hover:bg-black/5"
-                style={{ background: 'var(--bg-secondary)' }}
+                className="flex items-center gap-4 p-4 rounded-xl transition-all hover:bg-white/5 group"
+                style={{ background: 'rgba(12, 22, 48, 0.5)', border: '1px solid rgba(59, 130, 246, 0.06)' }}
               >
-                <span className="text-xl">{getCommitEmoji(commit.commit.message)}</span>
+                <span className="text-xl flex-shrink-0">{getCommitEmoji(commit.commit.message)}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                  <p className="text-sm font-medium truncate group-hover:text-blue-400 transition-colors" style={{ color: 'var(--text-primary)' }}>
                     {commit.commit.message.split('\n')[0].slice(0, 40)}
                   </p>
                 </div>
-                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatCommitDate(commit.commit.author.date)}</span>
+                <span className="text-xs font-mono flex-shrink-0" style={{ color: 'var(--text-muted)' }}>{formatCommitDate(commit.commit.author.date)}</span>
               </a>
             ))}
           </div>
