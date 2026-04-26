@@ -154,31 +154,54 @@ function HomePage() {
     return '📦'
   }
 
+  // Widget definitions
+  const widgets = [
+    { id: 'time', title: 'Time', icon: '🕐', value: timeStr, sub: dateStr, color: '#667eea' },
+    { id: 'online', title: 'Online', icon: '🟢', value: onlineUsers.length, sub: 'users', color: '#10b981' },
+    { id: 'chats', title: 'Messages', icon: '💬', value: dms.length, sub: 'total', color: '#8b5cf6' },
+    { id: 'groups', title: 'Groups', icon: '👥', value: groups.length, sub: 'joined', color: '#ec4899' },
+    { id: 'status', title: 'Status', icon: '📸', value: statuses.length, sub: 'updates', color: '#f59e0b' },
+    { id: 'friends', title: 'Friends', icon: '🤝', value: friends.length, sub: 'connected', color: '#06b6d4' },
+  ]
+
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
-      <div className="p-8 pb-4" style={{ borderBottom: '1px solid var(--border)' }}>
-        <div className="text-center mb-6">
-          <h1 className="text-4xl font-bold mb-2" style={{ color: 'var(--text-primary)', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Velocity</h1>
-          <p className="text-lg font-medium" style={{ color: 'var(--text-primary)' }}>{timeStr}</p>
-          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{dateStr}</p>
-        </div>
+      <div className="p-6" style={{ borderBottom: '1px solid var(--border)' }}>
+        <h1 className="text-2xl font-bold" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Velocity</h1>
       </div>
-      <div className="flex-1 overflow-y-auto px-8 py-6 space-y-8">
-        {/* Online Users */}
-        <div className="animate-fade-in">
+      <div className="flex-1 overflow-y-auto p-6">
+        <div className="grid grid-cols-2 gap-4">
+          {widgets.map((w, i) => (
+            <div 
+              key={w.id} 
+              className="p-5 rounded-2xl transition-all duration-300 hover:scale-[1.02] cursor-pointer"
+              style={{ 
+                background: 'var(--bg-secondary)',
+                boxShadow: `0 4px 20px ${w.color}20`
+              }}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-2xl">{w.icon}</span>
+                <span className="text-xs font-medium px-2 py-1 rounded-full" style={{ background: w.color, color: 'white' }}>{w.title}</span>
+              </div>
+              <p className="text-3xl font-bold" style={{ color: w.color }}>{w.value}</p>
+              <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>{w.sub}</p>
+            </div>
+          ))}
+        </div>
+        
+        {/* Online Users Row */}
+        <div className="mt-6">
           <h2 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
-            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" /> Online Now
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" /> Online Now ({onlineUsers.length})
           </h2>
-          <div className="flex gap-4 overflow-x-auto pb-2">
+          <div className="flex gap-3 overflow-x-auto pb-2">
             {onlineUsers.length > 0 ? onlineUsers.map((p, i) => (
-              <div key={p.id} className="flex flex-col items-center gap-2 min-w-fit transition-transform duration-300 hover:scale-105 animate-slide-up" style={{ animationDelay: `${i * 100}ms` }}>
-                <div className="relative">
-                  <div className="w-14 h-14 rounded-full overflow-hidden flex items-center justify-center" style={{ background: 'var(--bg-secondary)', boxShadow: '0 0 0 2px #667eea' }}>
-                    {p.avatar_url ? <img src={p.avatar_url} alt={p.username} className="w-full h-full object-cover" /> : <span className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>{p.username[0].toUpperCase()}</span>}
-                  </div>
-                  <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-green-500 border-2 animate-pulse" style={{ borderColor: 'var(--bg-primary)' }} />
+              <div key={p.id} className="flex flex-col items-center gap-2 min-w-fit">
+                <div className="w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center" style={{ background: 'var(--bg-tertiary)' }}>
+                  {p.avatar_url ? <img src={p.avatar_url} alt={p.username} className="w-full h-full object-cover" /> : <span className="font-bold" style={{ color: 'var(--text-primary)' }}>{p.username[0].toUpperCase()}</span>}
                 </div>
-                <span className="text-xs font-medium truncate max-w-16" style={{ color: 'var(--text-primary)' }}>{p.username}</span>
+                <span className="text-xs truncate max-w-14" style={{ color: 'var(--text-primary)' }}>{p.username}</span>
               </div>
             )) : (
               <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No one online</p>
@@ -186,67 +209,28 @@ function HomePage() {
           </div>
         </div>
 
-        {/* Recent Chats */}
-        <div className="animate-fade-in" style={{ animationDelay: '100ms' }}>
-          <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>Recent Chats</h2>
-          <div className="space-y-3">
-            {recentDms.length > 0 ? recentDms.map((dm, i) => {
-              const otherId = dm.sender_id === user?.id ? dm.receiver_id : dm.sender_id
-              const profile = profiles.find(p => p.id === otherId)
-              return (
-                <div key={dm.id} className="flex items-center gap-3 p-4 rounded-2xl transition-all duration-300 hover:scale-[1.02] cursor-pointer" style={{ background: 'var(--bg-secondary)' }}>
-                  <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0" style={{ background: 'var(--bg-tertiary)' }}>
-                    {profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="font-semibold text-lg" style={{ color: 'var(--text-primary)' }}>{profile?.username?.[0]?.toUpperCase() || '?'}</span>}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{profile?.username || 'Unknown'}</p>
-                    <p className="text-sm truncate" style={{ color: 'var(--text-secondary)' }}>{dm.content}</p>
-                  </div>
-                </div>
-              )
-            }) : (
-              <p className="text-sm p-4 rounded-xl text-center" style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>No recent chats</p>
-            )}
-          </div>
-        </div>
-
-        {/* Updates - Dynamic from Git commits */}
-        <div className="animate-fade-in" style={{ animationDelay: '200ms' }}>
+        {/* Git Commits */}
+        <div className="mt-6">
           <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>What's New</h2>
-          <div className="space-y-3">
-            {gitCommits.length > 0 ? gitCommits.map((commit, i) => (
+          <div className="space-y-2">
+            {gitCommits.slice(0, 5).map((commit) => (
               <a 
                 key={commit.sha} 
                 href={commit.html_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-start gap-3 p-4 rounded-xl transition-all hover:scale-[1.02]"
-                style={{ background: 'linear-gradient(135deg, rgba(102,126,234,0.1) 0%, rgba(118,75,162,0.1) 100%)' }}
+                className="flex items-center gap-3 p-3 rounded-xl transition-all hover:bg-black/5"
+                style={{ background: 'var(--bg-secondary)' }}
               >
-                <span className="text-2xl">{getCommitEmoji(commit.commit.message)}</span>
+                <span className="text-xl">{getCommitEmoji(commit.commit.message)}</span>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
-                      {commit.commit.message.split('\n')[0].slice(0, 50)}{commit.commit.message.length > 50 ? '...' : ''}
-                    </p>
-                    <span className="text-xs px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: '#667eea', color: 'white' }}>
-                      {formatCommitDate(commit.commit.author.date)}
-                    </span>
-                  </div>
-                  <p className="text-sm mt-1 truncate" style={{ color: 'var(--text-secondary)' }}>
-                    by tasqlab
+                  <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                    {commit.commit.message.split('\n')[0].slice(0, 40)}
                   </p>
                 </div>
+                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatCommitDate(commit.commit.author.date)}</span>
               </a>
-            )) : (
-              <div className="flex items-start gap-3 p-4 rounded-xl" style={{ background: 'linear-gradient(135deg, rgba(102,126,234,0.1) 0%, rgba(118,75,162,0.1) 100%)' }}>
-                <span className="text-2xl">⏳</span>
-                <div className="flex-1">
-                  <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>Loading updates...</p>
-                  <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Fetching latest commits from GitHub</p>
-                </div>
-              </div>
-            )}
+            ))}
           </div>
         </div>
       </div>
