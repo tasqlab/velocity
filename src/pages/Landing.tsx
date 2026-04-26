@@ -50,8 +50,8 @@ export default function Landing() {
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-6">
         {/* Logo */}
         <div className="mb-8 animate-fade-in-down">
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-violet-500 to-blue-600 flex items-center justify-center shadow-2xl shadow-violet-500/25">
-            <span className="text-4xl font-bold">V</span>
+          <div className="w-20 h-20 rounded-2xl flex items-center justify-center shadow-2xl" style={{ background: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)', boxShadow: '0 0 20px rgba(37,99,235,0.4)' }}>
+            <svg viewBox="0 0 24 24" fill="none" className="w-10 h-10"><path d="M13 3L4 14h8l-1 7 9-11h-8l1-10z" fill="white" stroke="white" strokeWidth="1.2" strokeLinejoin="round"/></svg>
           </div>
         </div>
 

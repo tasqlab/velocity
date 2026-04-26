@@ -81,12 +81,12 @@ function Sidebar({ activeTab, onTabChange }: { activeTab: Tab; onTabChange: (t: 
 
   return (
     <div className="w-20 h-full flex flex-col items-center py-4" style={{ background: darkMode ? '#1a1a1a' : '#f0f2f5', borderRight: `1px solid ${darkMode ? '#2d2d2d' : '#e1e4e8'}` }}>
-      <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-2xl mb-6 transition-transform duration-300 hover:scale-110 hover:rotate-3" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', boxShadow: '0 4px 15px rgba(102,126,234,0.4)' }}>
-        V
+      <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-6 transition-transform duration-300 hover:scale-110 hover:rotate-3" style={{ background: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)', boxShadow: '0 4px 15px rgba(37,99,235,0.4)' }}>
+        <svg viewBox="0 0 24 24" fill="none" className="w-7 h-7"><path d="M13 3L4 14h8l-1 7 9-11h-8l1-10z" fill="white" stroke="white" strokeWidth="1.2" strokeLinejoin="round"/></svg>
       </div>
       <div className="flex flex-col gap-3 flex-1">
         {tabs.map(tab => (
-          <button key={tab.id} onClick={() => handleTabChange(tab.id)} className="w-14 h-14 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all duration-300 hover:scale-105 hover:bg-opacity-50" style={{ background: activeTab === tab.id ? (darkMode ? '#2d2d2d' : '#e8eaed') : 'transparent', color: activeTab === tab.id ? '#667eea' : (darkMode ? '#888888' : '#666666') }}>
+          <button key={tab.id} onClick={() => handleTabChange(tab.id)} className="w-14 h-14 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all duration-300 hover:scale-105 hover:bg-opacity-50" style={{ background: activeTab === tab.id ? (darkMode ? '#2d2d2d' : '#e8eaed') : 'transparent', color: activeTab === tab.id ? '#2563eb' : (darkMode ? '#888888' : '#666666') }}>
             <svg className="w-6 h-6 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d={tab.icon} /></svg>
             <span className="text-[10px] font-medium">{labels[tab.id]}</span>
           </button>
@@ -105,14 +105,13 @@ function Sidebar({ activeTab, onTabChange }: { activeTab: Tab; onTabChange: (t: 
 }
 
 function HomePage() {
-  const { profiles, friends, dms, groups, user, statuses } = useApp()
+  const { profiles, friends, dms, groups, statuses } = useApp()
   const [gitCommits, setGitCommits] = useState<GitCommit[]>([])
   const now = new Date()
   const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   const dateStr = now.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })
 
   const onlineUsers = profiles.filter(p => p.is_online)
-  const recentDms = dms.slice(0, 5)
 
   // Fetch git commits on mount and every 30 seconds
   useEffect(() => {
@@ -165,90 +164,108 @@ function HomePage() {
   ]
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
-      <div className="px-8 py-6" style={{ borderBottom: '1px solid var(--border)' }}>
+    <div className="flex-1 flex flex-col h-full overflow-hidden relative" style={{ background: 'var(--bg-primary)' }}>
+      {/* Gradient blobs */}
+      <div className="absolute top-20 right-[10%] w-80 h-80 rounded-full bg-blue-600/10 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-32 left-[15%] w-96 h-96 rounded-full bg-cyan-600/10 blur-3xl pointer-events-none" />
+      <div className="absolute top-60 right-[30%] w-72 h-72 rounded-full bg-indigo-600/10 blur-3xl pointer-events-none" />
+
+      {/* Header */}
+      <div className="relative z-10 px-8 py-6" style={{ borderBottom: '1px solid var(--border)' }}>
         <h1 className="text-2xl font-bold tracking-tight" style={{ background: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Velocity</h1>
         <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>{dateStr} · {timeStr}</p>
       </div>
-      <div className="flex-1 overflow-y-auto p-8 space-y-8">
-        <div className="flex flex-col gap-5">
-          {widgets.map((w) => (
-            <div
-              key={w.id}
-              className="relative overflow-hidden rounded-2xl transition-all duration-300 hover:scale-[1.01] cursor-pointer group"
-              style={{
-                background: 'rgba(8, 15, 32, 0.6)',
-                backdropFilter: 'blur(24px) saturate(180%)',
-                WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-                border: '1px solid rgba(59, 130, 246, 0.12)',
-                minHeight: '140px',
-                padding: '28px'
-              }}
-            >
-              <div
-                className="absolute inset-0 pointer-events-none rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                style={{ background: `linear-gradient(160deg, ${w.color}08 0%, transparent 55%)` }}
-              />
-              <div className="relative z-10 flex flex-col h-full justify-between gap-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-3xl">{w.icon}</span>
-                    <span className="text-xs font-semibold tracking-wider uppercase px-3 py-1 rounded-full" style={{ background: `${w.color}18`, color: w.color, border: `1px solid ${w.color}30` }}>
-                      {w.title}
-                    </span>
-                  </div>
-                  <div className="w-2 h-2 rounded-full" style={{ background: w.color, boxShadow: `0 0 8px ${w.color}` }} />
-                </div>
-                <div>
-                  <p className="text-5xl font-bold tracking-tight" style={{ color: w.color }}>{w.value}</p>
-                  <p className="text-sm mt-2 font-medium" style={{ color: 'var(--text-muted)' }}>{w.sub}</p>
-                </div>
+      <div className="flex-1 overflow-y-auto p-6 relative z-10">
+        <div className="grid grid-cols-12 gap-6">
+          {/* Left sidebar - Widgets */}
+          <div className="col-span-4 space-y-5">
+            {/* Time Widget */}
+            <div className="rounded-2xl p-5 relative overflow-hidden group cursor-pointer transition-transform hover:scale-[1.01]"
+              style={{ background: 'linear-gradient(135deg, rgba(37,99,235,0.3) 0%, rgba(6,182,212,0.2) 100%)', border: '1px solid rgba(59,130,246,0.2)' }}>
+              <div className="relative z-10">
+                <p className="text-sm font-medium mb-1" style={{ color: 'rgba(255,255,255,0.7)' }}>{dateStr}</p>
+                <p className="text-4xl font-bold tracking-tight text-white">{timeStr}</p>
               </div>
             </div>
-          ))}
-        </div>
-        
-        {/* Online Users */}
-        <div className="rounded-2xl p-6" style={{ background: 'rgba(8, 15, 32, 0.4)', border: '1px solid rgba(59, 130, 246, 0.08)' }}>
-          <h2 className="text-sm font-semibold mb-5 flex items-center gap-2 tracking-wider uppercase" style={{ color: 'var(--text-secondary)' }}>
-            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" /> Online Now ({onlineUsers.length})
-          </h2>
-          <div className="flex gap-4 overflow-x-auto pb-2">
-            {onlineUsers.length > 0 ? onlineUsers.map((p) => (
-              <div key={p.id} className="flex flex-col items-center gap-2 min-w-fit transition-transform hover:scale-105">
-                <div className="w-12 h-12 rounded-xl overflow-hidden flex items-center justify-center" style={{ background: 'var(--bg-tertiary)', border: '1px solid rgba(59, 130, 246, 0.15)' }}>
-                  {p.avatar_url ? <img src={p.avatar_url} alt={p.username} className="w-full h-full object-cover" /> : <span className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{p.username[0].toUpperCase()}</span>}
-                </div>
-                <span className="text-xs truncate max-w-16" style={{ color: 'var(--text-primary)' }}>{p.username}</span>
-              </div>
-            )) : (
-              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No one online</p>
-            )}
-          </div>
-        </div>
 
-        {/* Git Commits */}
-        <div className="rounded-2xl p-6" style={{ background: 'rgba(8, 15, 32, 0.4)', border: '1px solid rgba(59, 130, 246, 0.08)' }}>
-          <h2 className="text-sm font-semibold mb-5 tracking-wider uppercase" style={{ color: 'var(--text-secondary)' }}>What's New</h2>
-          <div className="space-y-3">
-            {gitCommits.slice(0, 5).map((commit) => (
-              <a
-                key={commit.sha}
-                href={commit.html_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-4 p-4 rounded-xl transition-all hover:bg-white/5 group"
-                style={{ background: 'rgba(12, 22, 48, 0.5)', border: '1px solid rgba(59, 130, 246, 0.06)' }}
-              >
-                <span className="text-xl flex-shrink-0">{getCommitEmoji(commit.commit.message)}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate group-hover:text-blue-400 transition-colors" style={{ color: 'var(--text-primary)' }}>
-                    {commit.commit.message.split('\n')[0].slice(0, 40)}
-                  </p>
+            {/* Stats Grid - 2x2 */}
+            <div className="grid grid-cols-2 gap-3">
+              {widgets.slice(1, 5).map((w) => (
+                <div key={w.id} className="rounded-xl p-4 relative overflow-hidden cursor-pointer transition-all hover:scale-[1.02] group"
+                  style={{ background: 'rgba(8,15,32,0.5)', border: '1px solid rgba(59,130,246,0.1)' }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xl">{w.icon}</span>
+                    <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full" style={{ background: `${w.color}15`, color: w.color }}>{w.title}</span>
+                  </div>
+                  <p className="text-2xl font-bold" style={{ color: w.color }}>{w.value}</p>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{w.sub}</p>
                 </div>
-                <span className="text-xs font-mono flex-shrink-0" style={{ color: 'var(--text-muted)' }}>{formatCommitDate(commit.commit.author.date)}</span>
-              </a>
-            ))}
+              ))}
+            </div>
+
+            {/* Online Users */}
+            <div className="rounded-2xl p-5" style={{ background: 'rgba(8,15,32,0.4)', border: '1px solid rgba(59,130,246,0.08)' }}>
+              <h2 className="text-xs font-semibold mb-3 flex items-center gap-2 tracking-wider uppercase" style={{ color: 'var(--text-secondary)' }}>
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" /> Online ({onlineUsers.length})
+              </h2>
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {onlineUsers.length > 0 ? onlineUsers.map((p) => (
+                  <div key={p.id} className="flex flex-col items-center gap-1 min-w-fit">
+                    <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center" style={{ background: 'var(--bg-tertiary)', border: '1px solid rgba(59,130,246,0.15)' }}>
+                      {p.avatar_url ? <img src={p.avatar_url} alt={p.username} className="w-full h-full object-cover" /> : <span className="font-bold text-xs" style={{ color: 'var(--text-primary)' }}>{p.username[0].toUpperCase()}</span>}
+                    </div>
+                    <span className="text-[10px] truncate max-w-12" style={{ color: 'var(--text-primary)' }}>{p.username}</span>
+                  </div>
+                )) : (
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>No one online</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Right content area */}
+          <div className="col-span-8 space-y-5">
+            {/* Git Commits - Main content */}
+            <div className="rounded-2xl p-6" style={{ background: 'rgba(8,15,32,0.4)', border: '1px solid rgba(59,130,246,0.08)' }}>
+              <h2 className="text-sm font-semibold mb-4 tracking-wider uppercase flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+                <span>📢</span> What's New
+              </h2>
+              <div className="space-y-3">
+                {gitCommits.slice(0, 6).map((commit) => (
+                  <a key={commit.sha} href={commit.html_url} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-4 p-4 rounded-xl transition-all hover:bg-white/5 group"
+                    style={{ background: 'rgba(12,22,48,0.5)', border: '1px solid rgba(59,130,246,0.06)' }}>
+                    <span className="text-xl flex-shrink-0">{getCommitEmoji(commit.commit.message)}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate group-hover:text-blue-400 transition-colors" style={{ color: 'var(--text-primary)' }}>
+                        {commit.commit.message.split('\n')[0].slice(0, 50)}
+                      </p>
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>by {commit.commit.author.name}</p>
+                    </div>
+                    <span className="text-xs font-mono flex-shrink-0 px-2 py-1 rounded-lg" style={{ background: 'rgba(59,130,246,0.1)', color: '#60a5fa' }}>{formatCommitDate(commit.commit.author.date)}</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="rounded-xl p-4 cursor-pointer transition-all hover:scale-[1.02]" style={{ background: 'rgba(37,99,235,0.15)', border: '1px solid rgba(59,130,246,0.15)' }}>
+                <p className="text-2xl mb-1">💬</p>
+                <p className="font-semibold text-sm" style={{ color: '#60a5fa' }}>Start Chat</p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Message friends</p>
+              </div>
+              <div className="rounded-xl p-4 cursor-pointer transition-all hover:scale-[1.02]" style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.15)' }}>
+                <p className="text-2xl mb-1">👥</p>
+                <p className="font-semibold text-sm" style={{ color: '#4ade80' }}>New Group</p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Create a group</p>
+              </div>
+              <div className="rounded-xl p-4 cursor-pointer transition-all hover:scale-[1.02]" style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.15)' }}>
+                <p className="text-2xl mb-1">📸</p>
+                <p className="font-semibold text-sm" style={{ color: '#fbbf24' }}>Add Status</p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Share an update</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -313,51 +330,62 @@ function ChatList({ onSelectChat }: { onSelectChat: (type: 'dm' | 'group', id: s
   }
 
   return (
-    <div className="w-80 h-full flex flex-col" style={{ background: 'var(--bg-primary)', borderRight: '1px solid var(--border)' }}>
-      <div className="p-4" style={{ borderBottom: '1px solid var(--border)' }}>
+    <div className="w-80 h-full flex flex-col relative overflow-hidden" style={{ background: 'rgba(8, 15, 32, 0.65)', borderRight: '1px solid rgba(59, 130, 246, 0.1)', backdropFilter: 'blur(24px) saturate(180%)' }}>
+      {/* Glass background effect */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-10 left-[30%] w-40 h-40 rounded-full bg-blue-600/10 blur-3xl" />
+        <div className="absolute bottom-40 left-[10%] w-32 h-32 rounded-full bg-cyan-600/8 blur-2xl" />
+      </div>
+
+      {/* Header */}
+      <div className="relative z-10 p-4" style={{ borderBottom: '1px solid rgba(59,130,246,0.1)' }}>
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Chats</h1>
-          <button onClick={() => setShowNewGroup(true)} className="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-105" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-          </button>
+          <h1 className="text-xl font-bold" style={{ background: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Chats</h1>
+          <div className="flex gap-1">
+            <button className="w-9 h-9 rounded-lg flex items-center justify-center transition-all hover:bg-white/5" style={{ color: 'rgba(160,190,240,0.35)' }} title="New chat">✏️</button>
+            <button onClick={() => setShowNewGroup(true)} className="w-9 h-9 rounded-lg flex items-center justify-center transition-all hover:bg-white/5" style={{ color: 'rgba(160,190,240,0.35)' }} title="New group">👥+</button>
+          </div>
         </div>
-        <div className="flex items-center gap-2 px-3 py-2.5 rounded-full" style={{ background: 'var(--bg-secondary)' }}>
-          <svg className="w-5 h-5" style={{ color: 'var(--text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-          <input type="text" placeholder="Search people..." value={search} onChange={(e) => handleSearch(e.target.value)} className="flex-1 bg-transparent outline-none text-sm" style={{ color: 'var(--text-primary)' }} />
+        <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl" style={{ background: 'rgba(12,22,48,0.6)', border: '1px solid rgba(59,130,246,0.12)' }}>
+          <span style={{ color: 'rgba(160,190,240,0.35)' }}>🔍</span>
+          <input type="text" placeholder="Search conversations..." value={search} onChange={(e) => handleSearch(e.target.value)} className="flex-1 bg-transparent outline-none text-sm" style={{ color: 'var(--text-primary)' }} />
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      {/* Conversation List */}
+      <div className="flex-1 overflow-y-auto relative z-10">
         {showSearch && searchResults.length > 0 ? (
           <div className="p-2">
-            <p className="text-xs font-medium px-3 py-2" style={{ color: 'var(--text-muted)' }}>SEARCH RESULTS</p>
+            <p className="text-xs font-semibold tracking-wider uppercase px-3 py-2" style={{ color: 'var(--text-muted)' }}>Search Results</p>
             {searchResults.map(profile => (
-              <div key={profile.id} onClick={() => handleStartDM(profile.id)} className="flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer hover:bg-black/5">
-                <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center" style={{ background: 'var(--bg-secondary)' }}>
+              <div key={profile.id} onClick={() => handleStartDM(profile.id)} className="flex items-center gap-3 px-3 py-3 rounded-xl cursor-pointer hover:bg-white/5 transition-all mx-1">
+                <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center" style={{ background: 'var(--bg-secondary)', border: '1px solid rgba(59,130,246,0.1)' }}>
                   {profile.avatar_url ? <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" /> : <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{profile.username[0].toUpperCase()}</span>}
                 </div>
                 <div>
-                  <p className="font-medium" style={{ color: 'var(--text-primary)' }}>{profile.username}</p>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{profile.is_online ? 'Online' : 'Offline'}</p>
+                  <p className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>{profile.username}</p>
+                  <p className="text-xs" style={{ color: profile.is_online ? '#22c55e' : 'var(--text-muted)' }}>{profile.is_online ? '● Online' : '○ Offline'}</p>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          filtered.map(chat => (
-            <div key={`${chat.type}-${chat.id}`} onClick={() => onSelectChat(chat.type, chat.id)} className="flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-black/5" style={{ borderBottom: '1px solid var(--border)' }}>
-              <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center" style={{ background: chat.type === 'group' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'var(--bg-secondary)' }}>
-                {chat.avatar ? <img src={chat.avatar} alt={chat.name} className="w-full h-full object-cover" /> : <span className="font-semibold text-white">{chat.name[0].toUpperCase()}</span>}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{chat.name}</span>
-                  {chat.time && <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{chat.time}</span>}
+          <div className="p-2 space-y-1">
+            {filtered.map(chat => (
+              <div key={`${chat.type}-${chat.id}`} onClick={() => onSelectChat(chat.type, chat.id)} className="flex items-center gap-3 px-3 py-3 rounded-xl cursor-pointer transition-all hover:bg-white/5 group mx-1">
+                <div className="w-11 h-11 rounded-xl overflow-hidden flex items-center justify-center flex-shrink-0" style={{ background: chat.type === 'group' ? 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)' : 'rgba(12,22,48,0.6)', border: '1px solid rgba(59,130,246,0.12)' }}>
+                  {chat.avatar ? <img src={chat.avatar} alt={chat.name} className="w-full h-full object-cover" /> : <span className="font-semibold text-sm" style={{ color: chat.type === 'group' ? 'white' : 'var(--text-primary)' }}>{chat.name[0].toUpperCase()}</span>}
                 </div>
-                <p className="text-sm truncate" style={{ color: 'var(--text-secondary)' }}>{chat.lastMsg}</p>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-sm truncate" style={{ color: 'var(--text-primary)' }}>{chat.name}</span>
+                    {chat.time && <span className="text-[10px] font-mono" style={{ color: 'rgba(160,190,240,0.35)' }}>{chat.time}</span>}
+                  </div>
+                  <p className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>{chat.lastMsg}</p>
+                </div>
               </div>
-            </div>
-          ))
+            ))}
+          </div>
         )}
       </div>
 
@@ -368,7 +396,7 @@ function ChatList({ onSelectChat }: { onSelectChat: (type: 'dm' | 'group', id: s
             <input type="text" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} placeholder="Group name" className="w-full px-4 py-3 rounded-xl text-sm mb-4 outline-none" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }} />
             <div className="flex gap-2">
               <button onClick={() => setShowNewGroup(false)} className="flex-1 py-2.5 rounded-xl text-sm font-medium" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>Cancel</button>
-              <button onClick={handleCreateGroup} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>Create</button>
+              <button onClick={handleCreateGroup} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white" style={{ background: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)' }}>Create</button>
             </div>
           </div>
         </div>
@@ -495,13 +523,17 @@ function ChatArea({ type, id }: { type: 'dm' | 'group'; id: string }) {
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full" style={{ background: 'var(--bg-primary)' }}>
+    <div className="flex-1 flex flex-col h-full relative overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
+      {/* Chat background blobs */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-0 left-0 w-full h-full" style={{ background: 'radial-gradient(ellipse 65% 55% at 10% 15%, rgba(37,99,235,0.08) 0%, transparent 60%), radial-gradient(ellipse 50% 60% at 90% 85%, rgba(6,182,212,0.06) 0%, transparent 55%)' }} />
+        <div className="absolute top-20 right-[15%] w-72 h-72 rounded-full bg-blue-600/5 blur-3xl" />
+        <div className="absolute bottom-20 left-[10%] w-64 h-64 rounded-full bg-cyan-600/5 blur-3xl" />
+      </div>
+
       {/* Header */}
-      <div className="relative z-10 px-5 py-3 flex items-center gap-3" style={{ borderBottom: '1px solid rgba(59,130,246,0.1)' }}>
-        <button 
-          onClick={() => type === 'dm' ? setShowProfileInfo(true) : setShowGroupInfo(true)}
-          className="flex items-center gap-3 flex-1 hover:opacity-80 transition-opacity"
-        >
+      <div className="relative z-10 px-4 py-3 flex items-center gap-3" style={{ borderBottom: '1px solid rgba(59,130,246,0.1)' }}>
+        <button onClick={() => type === 'dm' ? setShowProfileInfo(true) : setShowGroupInfo(true)} className="flex items-center gap-3 flex-1 hover:opacity-80 transition-opacity">
           <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center" style={{ background: type === 'group' ? 'linear-gradient(135deg, #2563eb, #06b6d4)' : 'rgba(12,22,48,0.6)', border: '1px solid rgba(59,130,246,0.12)' }}>
             {avatar ? <img src={avatar} alt="" className="w-full h-full object-cover" /> : <span className="font-semibold text-sm" style={{ color: type === 'group' ? 'white' : 'var(--text-primary)' }}>{title?.[0]?.toUpperCase()}</span>}
           </div>
@@ -520,39 +552,27 @@ function ChatArea({ type, id }: { type: 'dm' | 'group'; id: string }) {
           </div>
         </button>
         
-        {/* Action buttons */}
-        <div className="flex items-center gap-1.5">
+        {/* Action buttons - exact match to example */}
+        <div className="flex items-center gap-1">
           {type === 'dm' && (
-            <button className="w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:bg-white/5" style={{ color: 'rgba(160,190,240,0.35)', fontSize: '15px' }} title="Voice call">
-              📞
-            </button>
+            <button className="w-9 h-9 rounded-lg flex items-center justify-center transition-all hover:bg-white/5" style={{ color: 'rgba(160,190,240,0.35)' }} title="Voice call">📞</button>
           )}
           {type === 'dm' && (
-            <button className="w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:bg-white/5" style={{ color: 'rgba(160,190,240,0.35)', fontSize: '15px' }} title="Video call">
-              🎥
-            </button>
+            <button className="w-9 h-9 rounded-lg flex items-center justify-center transition-all hover:bg-white/5" style={{ color: 'rgba(160,190,240,0.35)' }} title="Video call">🎥</button>
           )}
-          {type === 'group' && (
-            <button onClick={() => setShowInvite(true)} className="w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:bg-white/5" style={{ color: 'rgba(160,190,240,0.35)', fontSize: '15px' }} title="Add member">
-              👤+
-            </button>
-          )}
-          <button 
-            onClick={() => type === 'dm' ? setShowProfileInfo(true) : setShowGroupInfo(true)}
-            className="w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:bg-white/5"
-            style={{ color: 'rgba(160,190,240,0.35)', fontSize: '17px' }}
-            title="Info"
-          >
-            ⋮
-          </button>
+          <button className="w-9 h-9 rounded-lg flex items-center justify-center transition-all hover:bg-white/5" style={{ color: 'rgba(160,190,240,0.35)' }} title="Search">�</button>
+          <button onClick={() => type === 'dm' ? setShowProfileInfo(true) : setShowGroupInfo(true)} className="w-9 h-9 rounded-lg flex items-center justify-center transition-all hover:bg-white/5" style={{ color: 'rgba(160,190,240,0.35)' }} title="More">⋮</button>
         </div>
       </div>
 
+      {/* Encryption Notice */}
+      <div className="relative z-10 flex items-center justify-center gap-1.5 py-1.5" style={{ background: 'rgba(37,99,235,0.06)', borderBottom: '1px solid rgba(37,99,235,0.08)' }}>
+        <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>🔒</span>
+        <span className="text-[10px] tracking-wide" style={{ color: 'var(--text-muted)' }}>End-to-end encrypted · Velocity Shield™</span>
+      </div>
+
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-1" style={{ background: 'var(--bg-primary)' }}>
-        {/* Subtle chat background gradient overlay */}
-        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse 60% 50% at 20% 30%, rgba(37,99,235,0.04) 0%, transparent 60%), radial-gradient(ellipse 50% 60% at 80% 70%, rgba(6,182,212,0.03) 0%, transparent 60%)' }} />
-        
+      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-1 relative z-10">
         {messages.map((msg, index) => {
           const isMe = msg.sender_id === user?.id
           const sender = profiles.find(p => p.id === msg.sender_id)
@@ -561,33 +581,29 @@ function ChatArea({ type, id }: { type: 'dm' | 'group'; id: string }) {
           const isNewGroup = index === 0 || messages[index - 1].sender_id !== msg.sender_id
           
           return (
-            <div key={msg.id} className={`relative z-10 flex ${isMe ? 'justify-end' : 'justify-start'} items-end gap-2 ${isNewGroup ? 'mt-3' : ''}`}>
+            <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} items-end gap-2 ${isNewGroup ? 'mt-4' : 'mt-1'}`}>
               {!isMe && showAvatar ? (
-                <div className="w-7 h-7 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center" style={{ background: 'rgba(12,22,48,0.6)', border: '1px solid rgba(59,130,246,0.1)' }}>
+                <div className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center" style={{ background: 'rgba(12,22,48,0.6)', border: '1px solid rgba(59,130,246,0.1)' }}>
                   {sender?.avatar_url ? <img src={sender.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{sender?.username?.[0]?.toUpperCase() || '?'}</span>}
                 </div>
-              ) : !isMe ? <div className="w-7 flex-shrink-0" /> : null}
+              ) : !isMe ? <div className="w-8 flex-shrink-0" /> : null}
               
-              <div className={`max-w-[68%] flex flex-col gap-0.5 ${isMe ? 'items-end' : 'items-start'}`}>
+              <div className={`max-w-[70%] flex flex-col gap-0.5 ${isMe ? 'items-end' : 'items-start'}`}>
                 {!isMe && showAvatar && sender && <span className="text-[11px] font-semibold ml-1" style={{ color: 'rgba(191,219,254,0.7)' }}>{sender.username}</span>}
-                <div 
-                  className={`px-4 py-2.5 backdrop-blur-md transition-all duration-200 ${isMe ? 'rounded-2xl rounded-br-sm' : 'rounded-2xl rounded-bl-sm'}`}
+                <div className={`relative px-4 py-2.5 text-[13.5px] leading-relaxed ${isMe ? 'rounded-2xl rounded-br-md' : 'rounded-2xl rounded-bl-md'}`}
                   style={{ 
                     background: isMe ? 'rgba(37, 99, 235, 0.82)' : 'rgba(12, 22, 50, 0.6)',
-                    border: isMe ? '1px solid rgba(59,130,246,0.3)' : '1px solid rgba(59,130,246,0.08)',
+                    border: isMe ? '1px solid rgba(59,130,246,0.3)' : '1px solid rgba(59,130,246,0.1)',
                     color: isMe ? '#dbeafe' : 'var(--text-primary)',
-                    boxShadow: isMe ? '0 2px 16px rgba(37,99,235,0.25)' : '0 2px 12px rgba(0,0,0,0.3)'
-                  }}
-                >
-                  {/* Glass shine on outgoing */}
-                  {isMe && (
-                    <div className="absolute inset-0 pointer-events-none rounded-2xl rounded-br-sm" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 50%)' }} />
-                  )}
+                    boxShadow: isMe ? '0 2px 16px rgba(37,99,235,0.25)' : '0 2px 12px rgba(0,0,0,0.3)',
+                    backdropFilter: 'blur(16px)'
+                  }}>
+                  {isMe && <div className="absolute inset-0 pointer-events-none rounded-2xl rounded-br-md" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 50%)' }} />}
                   <div className="relative z-10">
                     <MessageContent content={msg.content} />
                   </div>
                 </div>
-                <span className="text-[9px] font-mono opacity-40 px-1" style={{ color: 'var(--text-muted)' }}>{time}</span>
+                <span className="text-[9px] font-mono px-1" style={{ color: 'rgba(160,190,240,0.35)' }}>{time} {isMe && '✓✓'}</span>
               </div>
             </div>
           )
@@ -595,42 +611,21 @@ function ChatArea({ type, id }: { type: 'dm' | 'group'; id: string }) {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input area */}
-      <div className="p-3" style={{ borderTop: '1px solid var(--border)' }}>
-        <div className="flex items-end gap-2.5">
-          <button className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:scale-105" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', color: 'var(--text-muted)' }} title="Attach">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
-          </button>
+      {/* Input area - exact match to example */}
+      <div className="relative z-10 p-3" style={{ borderTop: '1px solid var(--border)' }}>
+        <div className="flex items-end gap-2">
+          <button className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:scale-105" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', color: 'var(--text-muted)' }} title="Attach">📎</button>
           
-          <div className="flex-1 flex items-end gap-2 rounded-2xl px-4 py-3 transition-all" style={{ background: 'rgba(12, 22, 48, 0.7)', border: '1px solid rgba(59,130,246,0.15)' }}>
-            <textarea 
-              value={input} 
-              onChange={(e) => setInput(e.target.value)} 
-              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-              placeholder="Message" 
-              rows={1}
-              className="flex-1 bg-transparent outline-none resize-none text-sm leading-relaxed"
-              style={{ 
-                color: 'var(--text-primary)', 
-                minHeight: '22px', 
-                maxHeight: '110px',
-                fontFamily: '"Plus Jakarta Sans", sans-serif'
-              }}
-            />
+          <div className="flex-1 flex items-end gap-2 rounded-xl px-3 py-2.5" style={{ background: 'rgba(12, 22, 48, 0.7)', border: '1px solid rgba(59,130,246,0.15)' }}>
+            <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} placeholder="Message" rows={1}
+              className="flex-1 bg-transparent outline-none resize-none text-sm leading-relaxed max-h-28"
+              style={{ color: 'var(--text-primary)', minHeight: '22px', fontFamily: '"Plus Jakarta Sans", sans-serif' }} />
             <button className="text-lg leading-none pb-0.5 transition-transform hover:scale-110" style={{ color: 'var(--text-muted)' }}>😄</button>
           </div>
           
-          <button 
-            onClick={sendMessage} 
-            disabled={!input.trim()}
-            className="w-10 h-10 rounded-xl flex items-center justify-center transition-all disabled:opacity-40 hover:scale-105"
-            style={{ 
-              background: 'linear-gradient(135deg, #2563eb, #06b6d4)', 
-              color: 'white',
-              boxShadow: '0 0 18px rgba(37,99,235,0.35), inset 0 1px 0 rgba(255,255,255,0.15)'
-            }}
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+          <button onClick={sendMessage} disabled={!input.trim()} className="w-10 h-10 rounded-xl flex items-center justify-center transition-all disabled:opacity-40 hover:scale-105"
+            style={{ background: 'linear-gradient(135deg, #2563eb, #06b6d4)', color: 'white', boxShadow: '0 0 18px rgba(37,99,235,0.35)' }}>
+            ➤
           </button>
         </div>
       </div>
@@ -669,7 +664,7 @@ function ChatArea({ type, id }: { type: 'dm' | 'group'; id: string }) {
             {profile.description && <p className="text-center mb-4" style={{ color: 'var(--text-secondary)' }}>{profile.description}</p>}
             {profile.phone && <p className="text-center text-sm mb-4" style={{ color: 'var(--text-muted)' }}>Phone: {profile.phone}</p>}
             <div className="flex gap-3">
-              <button className="flex-1 py-3 rounded-xl font-medium text-white" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>Message</button>
+              <button className="flex-1 py-3 rounded-xl font-medium text-white" style={{ background: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)' }}>Message</button>
               <button onClick={() => setShowProfileInfo(false)} className="flex-1 py-3 rounded-xl font-medium" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>Close</button>
             </div>
           </div>
@@ -681,7 +676,7 @@ function ChatArea({ type, id }: { type: 'dm' | 'group'; id: string }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
           <div className="w-full max-w-sm rounded-3xl p-6" style={{ background: 'var(--bg-primary)' }}>
             <div className="text-center mb-6">
-              <div className="w-24 h-24 rounded-full mx-auto mb-4 overflow-hidden flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+              <div className="w-24 h-24 rounded-full mx-auto mb-4 overflow-hidden flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)' }}>
                 {group.avatar_url ? <img src={group.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-4xl font-bold text-white">{group.name[0].toUpperCase()}</span>}
               </div>
               <h3 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{group.name}</h3>
@@ -700,7 +695,7 @@ function ChatArea({ type, id }: { type: 'dm' | 'group'; id: string }) {
               ))}
             </div>
             <div className="flex gap-3">
-              <button onClick={() => { setShowGroupInfo(false); setShowInvite(true); }} className="flex-1 py-3 rounded-xl font-medium text-white" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>Add Member</button>
+              <button onClick={() => { setShowGroupInfo(false); setShowInvite(true); }} className="flex-1 py-3 rounded-xl font-medium text-white" style={{ background: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)' }}>Add Member</button>
               <button onClick={() => setShowGroupInfo(false)} className="flex-1 py-3 rounded-xl font-medium" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>Close</button>
             </div>
           </div>
@@ -718,7 +713,7 @@ function StatusPage() {
   const [mediaUrl, setMediaUrl] = useState('')
 
   const myStatuses = user ? statuses.filter(s => s.user_id === user.id) : []
-  const otherStatuses = user ? statuses.filter(s => s.user_id !== user.id) : []
+  const otherStatuses = user ? statuses.filter(s => s.user_id !== user.id) : statuses
 
   const handleAddStatus = async () => {
     if (!user || (!content.trim() && !mediaUrl.trim())) return
@@ -729,15 +724,20 @@ function StatusPage() {
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full" style={{ background: 'var(--bg-primary)' }}>
-      <div className="p-4" style={{ borderBottom: '1px solid var(--border)' }}><h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Status</h1></div>
-      <div className="flex-1 overflow-y-auto p-4">
+    <div className="flex-1 flex flex-col h-full relative overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
+      {/* Gradient blobs */}
+      <div className="absolute top-20 right-[15%] w-80 h-80 rounded-full bg-blue-600/10 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-20 left-[10%] w-72 h-72 rounded-full bg-cyan-600/10 blur-3xl pointer-events-none" />
+      <div className="absolute top-40 left-[40%] w-64 h-64 rounded-full bg-indigo-600/10 blur-3xl pointer-events-none" />
+
+      <div className="relative z-10 p-4" style={{ borderBottom: '1px solid var(--border)' }}><h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Status</h1></div>
+      <div className="relative z-10 flex-1 overflow-y-auto p-4">
         <div className="flex items-center gap-3 p-3 rounded-2xl cursor-pointer hover:bg-black/5" onClick={() => setShowAddModal(true)}>
           <div className="relative">
             <div className="w-14 h-14 rounded-full overflow-hidden" style={{ background: 'var(--bg-tertiary)', padding: '2px' }}>
-              <div className="w-full h-full rounded-full flex items-center justify-center font-semibold text-white" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>You</div>
+              <div className="w-full h-full rounded-full flex items-center justify-center font-semibold text-white" style={{ background: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)' }}>You</div>
             </div>
-            <div className="absolute bottom-0 right-0 w-6 h-6 rounded-full flex items-center justify-center text-white" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+            <div className="absolute bottom-0 right-0 w-6 h-6 rounded-full flex items-center justify-center text-white" style={{ background: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)' }}>
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
             </div>
           </div>
@@ -762,7 +762,7 @@ function StatusPage() {
               return (
                 <div key={s.id} className="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-black/5">
                   <div className="w-14 h-14 rounded-full overflow-hidden" style={{ background: 'var(--bg-tertiary)', padding: '2px' }}>
-                    {s.media_url ? <div className="w-full h-full rounded-full overflow-hidden"><img src={s.media_url} alt="" className="w-full h-full object-cover" /></div> : <div className="w-full h-full rounded-full flex items-center justify-center font-semibold text-white" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>{profile?.username?.[0] || '?'}</div>}
+                    {s.media_url ? <div className="w-full h-full rounded-full overflow-hidden"><img src={s.media_url} alt="" className="w-full h-full object-cover" /></div> : <div className="w-full h-full rounded-full flex items-center justify-center font-semibold text-white" style={{ background: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)' }}>{profile?.username?.[0] || '?'}</div>}
                   </div>
                   <div><p className="font-semibold" style={{ color: 'var(--text-primary)' }}>{profile?.username || 'Unknown'}</p><p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{new Date(s.created_at).toLocaleString()}</p></div>
                 </div>
@@ -785,13 +785,13 @@ function StatusPage() {
             <h3 className="text-lg font-bold mb-4" style={{ color: 'var(--text-primary)' }}>Add Status</h3>
             <div className="flex gap-2 mb-4">
               {(['text', 'image', 'video'] as const).map(t => (
-                <button key={t} onClick={() => setStatusType(t)} className="flex-1 py-2 rounded-lg text-sm font-medium capitalize" style={{ background: statusType === t ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'var(--bg-tertiary)', color: statusType === t ? 'white' : 'var(--text-secondary)' }}>{t}</button>
+                <button key={t} onClick={() => setStatusType(t)} className="flex-1 py-2 rounded-lg text-sm font-medium capitalize" style={{ background: statusType === t ? 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)' : 'var(--bg-tertiary)', color: statusType === t ? 'white' : 'var(--text-secondary)' }}>{t}</button>
               ))}
             </div>
             {statusType === 'text' ? <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder="What's on your mind?" className="w-full h-24 p-3 rounded-xl text-sm outline-none resize-none" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }} /> : <input type="url" value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} placeholder={`Enter ${statusType} URL`} className="w-full p-3 rounded-xl text-sm outline-none" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }} />}
             <div className="flex gap-2 mt-4">
               <button onClick={() => setShowAddModal(false)} className="flex-1 py-2.5 rounded-xl text-sm font-medium" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>Cancel</button>
-              <button onClick={handleAddStatus} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>Post</button>
+              <button onClick={handleAddStatus} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white" style={{ background: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)' }}>Post</button>
             </div>
           </div>
         </div>
@@ -802,9 +802,14 @@ function StatusPage() {
 
 function CallsPage() {
   return (
-    <div className="flex-1 flex flex-col h-full" style={{ background: 'var(--bg-primary)' }}>
-      <div className="p-4" style={{ borderBottom: '1px solid var(--border)' }}><h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Calls</h1></div>
-      <div className="flex-1 flex flex-col items-center justify-center">
+    <div className="flex-1 flex flex-col h-full relative overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
+      {/* Gradient blobs */}
+      <div className="absolute top-20 right-[10%] w-96 h-96 rounded-full bg-blue-600/10 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-20 left-[15%] w-80 h-80 rounded-full bg-cyan-600/10 blur-3xl pointer-events-none" />
+      <div className="absolute top-40 right-[30%] w-72 h-72 rounded-full bg-indigo-600/10 blur-3xl pointer-events-none" />
+
+      <div className="relative z-10 p-4" style={{ borderBottom: '1px solid var(--border)' }}><h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Calls</h1></div>
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center">
         <div className="w-20 h-20 rounded-full mb-4 flex items-center justify-center" style={{ background: 'var(--bg-secondary)' }}>
           <svg className="w-10 h-10" style={{ color: 'var(--text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
         </div>
@@ -828,27 +833,32 @@ function SettingsPage() {
   const saveProfile = async () => { if (!user) return; await supabase.from('profiles').update({ username, description, phone }).eq('id', user.id) }
 
   return (
-    <div className="flex-1 flex flex-col h-full" style={{ background: 'var(--bg-primary)' }}>
-      <div className="p-4" style={{ borderBottom: '1px solid var(--border)' }}><h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Settings</h1></div>
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
+    <div className="flex-1 flex flex-col h-full relative overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
+      {/* Gradient blobs */}
+      <div className="absolute top-20 left-[10%] w-80 h-80 rounded-full bg-blue-600/10 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-32 right-[20%] w-96 h-96 rounded-full bg-cyan-600/10 blur-3xl pointer-events-none" />
+      <div className="absolute top-60 right-[10%] w-64 h-64 rounded-full bg-indigo-600/10 blur-3xl pointer-events-none" />
+
+      <div className="relative z-10 p-4" style={{ borderBottom: '1px solid var(--border)' }}><h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Settings</h1></div>
+      <div className="relative z-10 flex-1 overflow-y-auto p-4 space-y-6">
         <div>
           <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>PROFILE</h2>
           <div className="space-y-3">
             <div className="flex items-center gap-3">
-              <div className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-white" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>{user?.email?.[0].toUpperCase()}</div>
+              <div className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-white" style={{ background: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)' }}>{user?.email?.[0].toUpperCase()}</div>
               <div><p className="font-semibold" style={{ color: 'var(--text-primary)' }}>{user?.email?.split('@')[0]}</p><p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{user?.email}</p></div>
             </div>
             <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username" className="w-full p-3 rounded-xl text-sm outline-none" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }} />
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Bio" className="w-full p-3 rounded-xl text-sm outline-none resize-none" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }} />
             <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone" className="w-full p-3 rounded-xl text-sm outline-none" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }} />
-            <button onClick={saveProfile} className="w-full py-3 rounded-xl font-medium text-white" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>Save Profile</button>
+            <button onClick={saveProfile} className="w-full py-3 rounded-xl font-medium text-white" style={{ background: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)' }}>Save Profile</button>
           </div>
         </div>
         <div>
           <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>APPEARANCE</h2>
           <div className="flex items-center justify-between p-4 rounded-xl" style={{ background: 'var(--bg-secondary)' }}>
             <span className="font-medium" style={{ color: 'var(--text-primary)' }}>Dark Mode</span>
-            <button onClick={() => setDarkMode(!darkMode)} className="w-12 h-6 rounded-full transition-colors relative" style={{ background: darkMode ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'var(--border-strong)' }}>
+            <button onClick={() => setDarkMode(!darkMode)} className="w-12 h-6 rounded-full transition-colors relative" style={{ background: darkMode ? 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)' : 'var(--border-strong)' }}>
               <div className="absolute top-1 w-4 h-4 rounded-full bg-white transition-transform" style={{ left: darkMode ? '28px' : '4px' }} />
             </button>
           </div>
@@ -856,7 +866,7 @@ function SettingsPage() {
         <div>
           <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>ABOUT</h2>
           <div className="p-4 rounded-xl" style={{ background: 'var(--bg-secondary)' }}>
-            <p className="font-semibold" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Velocity</p>
+            <p className="font-semibold" style={{ background: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Velocity</p>
             <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Version 1.0.0</p>
           </div>
         </div>
@@ -915,7 +925,7 @@ export default function MainLayout() {
     }
   }
 
-  if (loading) return <div className="h-screen w-screen flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}><div className="w-10 h-10 rounded-full animate-spin" style={{ border: '3px solid var(--border)', borderTopColor: '#667eea' }} /></div>
+  if (loading) return <div className="h-screen w-screen flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}><div className="w-10 h-10 rounded-full animate-spin" style={{ border: '3px solid var(--border)', borderTopColor: '#2563eb' }} /></div>
   if (!user) return <Navigate to="/login" />
 
   return (
@@ -923,7 +933,23 @@ export default function MainLayout() {
       <div className="h-screen w-screen flex overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
         <Sidebar activeTab={activeTab} onTabChange={handleTabChange} />
         {activeTab === 'home' && <HomePage />}
-        {activeTab === 'chat' && (<><ChatList onSelectChat={(type, id) => setSelectedChat({ type, id })} />{selectedChat ? <ChatArea type={selectedChat.type} id={selectedChat.id} /> : <div className="flex-1 flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}><div className="text-center p-8"><div className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ background: 'var(--bg-secondary)' }}><svg className="w-10 h-10" style={{ color: 'var(--text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg></div><p className="font-medium" style={{ color: 'var(--text-primary)' }}>Select a chat</p><p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Choose from your existing conversations</p></div></div>}</>)}
+        {activeTab === 'chat' && (<>
+          <ChatList onSelectChat={(type, id) => setSelectedChat({ type, id })} />
+          {selectedChat ? <ChatArea type={selectedChat.type} id={selectedChat.id} /> : (
+            <div className="flex-1 flex items-center justify-center relative overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
+              {/* Gradient blobs */}
+              <div className="absolute top-20 right-[20%] w-80 h-80 rounded-full bg-blue-600/10 blur-3xl pointer-events-none" />
+              <div className="absolute bottom-20 left-[15%] w-72 h-72 rounded-full bg-cyan-600/10 blur-3xl pointer-events-none" />
+              <div className="relative z-10 text-center p-8">
+                <div className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ background: 'var(--bg-secondary)' }}>
+                  <svg className="w-10 h-10" style={{ color: 'var(--text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                </div>
+                <p className="font-medium" style={{ color: 'var(--text-primary)' }}>Select a chat</p>
+                <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Choose from your existing conversations</p>
+              </div>
+            </div>
+          )}
+        </>)}
         {activeTab === 'status' && <StatusPage />}
         {activeTab === 'calls' && <CallsPage />}
         {activeTab === 'settings' && <SettingsPage />}
