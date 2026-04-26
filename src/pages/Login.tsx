@@ -20,6 +20,16 @@ export default function Login() {
     setError(null)
     setLoading(true)
 
+    // Check if Supabase is configured
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+    console.log('Supabase URL:', supabaseUrl) // Debug log
+    
+    if (!supabaseUrl || supabaseUrl.includes('your-project') || supabaseUrl === 'your-supabase-url') {
+      setError('Supabase not configured. Please check your .env file and set VITE_SUPABASE_URL.')
+      setLoading(false)
+      return
+    }
+
     try {
       const { data, error: authError } = await supabase.auth.signInWithPassword({
         email,
@@ -39,8 +49,13 @@ export default function Login() {
       }
 
       navigate('/')
-    } catch {
-      setError('An unexpected error occurred.')
+    } catch (err: any) {
+      console.error('Login error:', err)
+      if (err.message?.includes('fetch') || err.message?.includes('network')) {
+        setError(`Connection failed. URL: ${supabaseUrl}. Check: 1) Internet connection 2) Supabase project is active 3) CORS enabled 4) URL format`)
+      } else {
+        setError(err.message || 'An unexpected error occurred.')
+      }
       setLoading(false)
     }
   }
